@@ -278,6 +278,79 @@ html, body, #app {
   border-top: 1px solid var(--border);
 }
 
+.sessionLabel {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.savedGraphsSection {
+  border-top: 1px solid var(--border);
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.savedGraphsHeader {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.savedGraphsList {
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.savedGraphItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.savedGraphItem button {
+  flex: 1;
+  text-align: left;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 7px 9px;
+  font-size: 11px;
+  font-family: var(--mono);
+  cursor: pointer;
+}
+
+.savedGraphItem button:hover {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.savedGraphItem .deleteGraphBtn {
+  flex: 0 0 auto;
+  width: 28px;
+  padding: 7px 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.savedGraphItem .deleteGraphBtn:hover {
+  border-color: #f87171;
+  color: #f87171;
+}
+
+.savedGraphsEmpty {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
 #canvasWrap {
   position: relative;
   overflow: hidden;
