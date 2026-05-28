@@ -1,7 +1,7 @@
 {
-    "name": "BatchNorm1d",
+    "name": "InstanceNorm3d",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.InstanceNorm3d",
     "init_arguments": {
         "num_features": {
             "required": "True",
@@ -17,11 +17,11 @@
         },
         "affine": {
             "required": "False",
-            "default": true
+            "default": false
         },
         "track_running_stats": {
             "required": "False",
-            "default": true
+            "default": false
         },
         "device": {
             "required": "False",

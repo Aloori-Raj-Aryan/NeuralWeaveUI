@@ -1,31 +1,47 @@
 {
-    "name": "MaxPool2d",
+    "name": "ConvTranspose1d",
     "category": "Module",
-    "path": "torch.nn.MaxPool2d",
+    "path": "torch.nn.ConvTranspose1d",
     "init_arguments": {
+        "in_channels": {
+            "required": "True",
+            "default": null
+        },
+        "out_channels": {
+            "required": "True",
+            "default": null
+        },
         "kernel_size": {
             "required": "True",
             "default": null
         },
         "stride": {
             "required": "False",
-            "default": null
+            "default": 1
         },
         "padding": {
             "required": "False",
             "default": 0
         },
+        "output_padding": {
+            "required": "False",
+            "default": 0
+        },
+        "groups": {
+            "required": "False",
+            "default": 1
+        },
+        "bias": {
+            "required": "False",
+            "default": true
+        },
         "dilation": {
             "required": "False",
             "default": 1
         },
-        "return_indices": {
+        "padding_mode": {
             "required": "False",
-            "default": false
-        },
-        "ceil_mode": {
-            "required": "False",
-            "default": false
+            "default": "zeros"
         }
     },
     "forward_arguments": {

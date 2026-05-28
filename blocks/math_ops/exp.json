@@ -1,8 +1,7 @@
 {
-    "name": "Sigmoid",
-    "category": "Module",
-    "path": "torch.nn.Sigmoid",
-    "init_arguments": {},
+    "name": "exp",
+    "category": "Function",
+    "path": "torch.exp",
     "forward_arguments": {
         "input": {
             "type": "Tensor",

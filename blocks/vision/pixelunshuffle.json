@@ -1,11 +1,11 @@
 {
-    "name": "ReLU",
+    "name": "PixelUnshuffle",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.PixelUnshuffle",
     "init_arguments": {
-        "inplace": {
-            "required": "False",
-            "default": false
+        "downscale_factor": {
+            "required": "True",
+            "default": null
         }
     },
     "forward_arguments": {

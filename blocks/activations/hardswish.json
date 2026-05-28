@@ -1,13 +1,8 @@
 {
-    "name": "ReLU",
+    "name": "Hardswish",
     "category": "Module",
-    "path": "torch.nn.ReLU",
-    "init_arguments": {
-        "inplace": {
-            "required": "False",
-            "default": false
-        }
-    },
+    "path": "torch.nn.Hardswish",
+    "init_arguments": {},
     "forward_arguments": {
         "input": {
             "type": "Tensor",

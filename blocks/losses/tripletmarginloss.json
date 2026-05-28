@@ -1,0 +1,39 @@
+{
+    "name": "TripletMarginLoss",
+    "category": "Module",
+    "path": "torch.nn.TripletMarginLoss",
+    "init_arguments": {
+        "margin": {
+            "required": "False",
+            "default": 1.0
+        },
+        "swap": {
+            "required": "False",
+            "default": false
+        },
+        "reduction": {
+            "required": "False",
+            "default": "mean"
+        }
+    },
+    "forward_arguments": {
+        "anchor": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "positive": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "negative": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "name": "ParameterDict",
+    "category": "Module",
+    "path": "torch.nn.ParameterDict",
+    "init_arguments": {
+        "parameters": {
+            "required": "True",
+            "default": null
+        }
+    },
+    "forward_arguments": {},
+    "output": [
+        "output"
+    ]
+}

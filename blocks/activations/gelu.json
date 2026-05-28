@@ -1,9 +1,9 @@
 {
-    "name": "ReLU",
+    "name": "GELU",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.GELU",
     "init_arguments": {
-        "inplace": {
+        "approximate": {
             "required": "False",
             "default": false
         }

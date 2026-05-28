@@ -1,7 +1,7 @@
 {
-    "name": "BatchNorm1d",
+    "name": "SyncBatchNorm",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.SyncBatchNorm",
     "init_arguments": {
         "num_features": {
             "required": "True",
@@ -22,6 +22,10 @@
         "track_running_stats": {
             "required": "False",
             "default": true
+        },
+        "process_group": {
+            "required": "False",
+            "default": null
         },
         "device": {
             "required": "False",

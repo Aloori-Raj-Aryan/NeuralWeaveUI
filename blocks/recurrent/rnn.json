@@ -1,27 +1,39 @@
 {
-    "name": "BatchNorm1d",
+    "name": "RNN",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.RNN",
     "init_arguments": {
-        "num_features": {
+        "input_size": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
+        "hidden_size": {
+            "required": "True",
+            "default": null
         },
-        "momentum": {
+        "num_layers": {
             "required": "False",
-            "default": 0.1
+            "default": 1
         },
-        "affine": {
+        "nonlinearity": {
+            "required": "False",
+            "default": "tanh"
+        },
+        "bias": {
             "required": "False",
             "default": true
         },
-        "track_running_stats": {
+        "batch_first": {
             "required": "False",
-            "default": true
+            "default": false
+        },
+        "dropout": {
+            "required": "False",
+            "default": 0.0
+        },
+        "bidirectional": {
+            "required": "False",
+            "default": false
         },
         "device": {
             "required": "False",
@@ -37,9 +49,15 @@
             "type": "Tensor",
             "required": "True",
             "default": null
+        },
+        "hx": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
         }
     },
     "output": [
-        "output"
+        "output",
+        "h_n"
     ]
 }

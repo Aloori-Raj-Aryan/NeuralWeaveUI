@@ -1,8 +1,12 @@
 {
-    "name": "MaxPool2d",
+    "name": "LpPool2d",
     "category": "Module",
-    "path": "torch.nn.MaxPool2d",
+    "path": "torch.nn.LPPool2d",
     "init_arguments": {
+        "norm_type": {
+            "required": "True",
+            "default": 2
+        },
         "kernel_size": {
             "required": "True",
             "default": null
@@ -10,18 +14,6 @@
         "stride": {
             "required": "False",
             "default": null
-        },
-        "padding": {
-            "required": "False",
-            "default": 0
-        },
-        "dilation": {
-            "required": "False",
-            "default": 1
-        },
-        "return_indices": {
-            "required": "False",
-            "default": false
         },
         "ceil_mode": {
             "required": "False",

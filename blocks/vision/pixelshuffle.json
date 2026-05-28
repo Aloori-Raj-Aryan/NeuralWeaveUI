@@ -1,11 +1,11 @@
 {
-    "name": "ReLU",
+    "name": "PixelShuffle",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.PixelShuffle",
     "init_arguments": {
-        "inplace": {
-            "required": "False",
-            "default": false
+        "upscale_factor": {
+            "required": "True",
+            "default": null
         }
     },
     "forward_arguments": {

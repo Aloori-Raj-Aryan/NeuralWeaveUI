@@ -1,31 +1,27 @@
 {
-    "name": "MaxPool2d",
+    "name": "Fold",
     "category": "Module",
-    "path": "torch.nn.MaxPool2d",
+    "path": "torch.nn.Fold",
     "init_arguments": {
-        "kernel_size": {
+        "output_size": {
             "required": "True",
             "default": null
         },
-        "stride": {
-            "required": "False",
+        "kernel_size": {
+            "required": "True",
             "default": null
-        },
-        "padding": {
-            "required": "False",
-            "default": 0
         },
         "dilation": {
             "required": "False",
             "default": 1
         },
-        "return_indices": {
+        "padding": {
             "required": "False",
-            "default": false
+            "default": 0
         },
-        "ceil_mode": {
+        "stride": {
             "required": "False",
-            "default": false
+            "default": 1
         }
     },
     "forward_arguments": {

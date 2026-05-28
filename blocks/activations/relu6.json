@@ -1,7 +1,7 @@
 {
-    "name": "ReLU",
+    "name": "ReLU6",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.ReLU6",
     "init_arguments": {
         "inplace": {
             "required": "False",

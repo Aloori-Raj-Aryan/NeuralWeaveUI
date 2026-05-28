@@ -1,25 +1,21 @@
 {
-    "name": "BatchNorm1d",
+    "name": "RNNCell",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.RNNCell",
     "init_arguments": {
-        "num_features": {
+        "input_size": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
+        "hidden_size": {
+            "required": "True",
+            "default": null
         },
-        "momentum": {
+        "nonlinearity": {
             "required": "False",
-            "default": 0.1
+            "default": "tanh"
         },
-        "affine": {
-            "required": "False",
-            "default": true
-        },
-        "track_running_stats": {
+        "bias": {
             "required": "False",
             "default": true
         },
@@ -36,6 +32,11 @@
         "input": {
             "type": "Tensor",
             "required": "True",
+            "default": null
+        },
+        "hx": {
+            "type": "Tensor",
+            "required": "False",
             "default": null
         }
     },

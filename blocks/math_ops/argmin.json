@@ -1,12 +1,16 @@
 {
-    "name": "Sigmoid",
-    "category": "Module",
-    "path": "torch.nn.Sigmoid",
-    "init_arguments": {},
+    "name": "argmin",
+    "category": "Function",
+    "path": "torch.argmin",
     "forward_arguments": {
         "input": {
             "type": "Tensor",
             "required": "True",
+            "default": null
+        },
+        "dim": {
+            "type": "int",
+            "required": "False",
             "default": null
         }
     },

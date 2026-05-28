@@ -1,13 +1,8 @@
 {
-    "name": "ReLU",
+    "name": "Tanh",
     "category": "Module",
-    "path": "torch.nn.ReLU",
-    "init_arguments": {
-        "inplace": {
-            "required": "False",
-            "default": false
-        }
-    },
+    "path": "torch.nn.Tanh",
+    "init_arguments": {},
     "forward_arguments": {
         "input": {
             "type": "Tensor",

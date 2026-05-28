@@ -1,9 +1,9 @@
 {
-    "name": "BatchNorm1d",
+    "name": "LayerNorm",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.LayerNorm",
     "init_arguments": {
-        "num_features": {
+        "normalized_shape": {
             "required": "True",
             "default": null
         },
@@ -11,15 +11,7 @@
             "required": "False",
             "default": 1e-05
         },
-        "momentum": {
-            "required": "False",
-            "default": 0.1
-        },
-        "affine": {
-            "required": "False",
-            "default": true
-        },
-        "track_running_stats": {
+        "elementwise_affine": {
             "required": "False",
             "default": true
         },

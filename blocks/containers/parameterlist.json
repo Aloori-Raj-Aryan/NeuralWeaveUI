@@ -1,0 +1,15 @@
+{
+    "name": "ParameterList",
+    "category": "Module",
+    "path": "torch.nn.ParameterList",
+    "init_arguments": {
+        "parameters": {
+            "required": "True",
+            "default": null
+        }
+    },
+    "forward_arguments": {},
+    "output": [
+        "output"
+    ]
+}

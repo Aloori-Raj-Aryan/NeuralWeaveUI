@@ -1,31 +1,19 @@
 {
-    "name": "MaxPool2d",
+    "name": "FractionalMaxPool2d",
     "category": "Module",
-    "path": "torch.nn.MaxPool2d",
+    "path": "torch.nn.FractionalMaxPool2d",
     "init_arguments": {
         "kernel_size": {
             "required": "True",
             "default": null
         },
-        "stride": {
+        "output_size": {
             "required": "False",
             "default": null
         },
-        "padding": {
+        "stride": {
             "required": "False",
-            "default": 0
-        },
-        "dilation": {
-            "required": "False",
-            "default": 1
-        },
-        "return_indices": {
-            "required": "False",
-            "default": false
-        },
-        "ceil_mode": {
-            "required": "False",
-            "default": false
+            "default": null
         }
     },
     "forward_arguments": {
@@ -36,6 +24,7 @@
         }
     },
     "output": [
-        "output"
+        "output",
+        "indices"
     ]
 }

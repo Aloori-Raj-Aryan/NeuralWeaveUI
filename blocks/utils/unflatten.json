@@ -1,0 +1,25 @@
+{
+    "name": "unflatten",
+    "category": "Function",
+    "path": "torch.unflatten",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "dim": {
+            "type": "int",
+            "required": "True",
+            "default": 0
+        },
+        "sizes": {
+            "type": "Tuple[int]",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

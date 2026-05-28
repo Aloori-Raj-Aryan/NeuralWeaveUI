@@ -1,0 +1,30 @@
+{
+    "name": "NLLLoss",
+    "category": "Module",
+    "path": "torch.nn.NLLLoss",
+    "init_arguments": {
+        "ignore_index": {
+            "required": "False",
+            "default": -100
+        },
+        "reduction": {
+            "required": "False",
+            "default": "mean"
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "target": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

@@ -1,35 +1,27 @@
 {
-    "name": "BatchNorm1d",
+    "name": "AvgPool3d",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.AvgPool3d",
     "init_arguments": {
-        "num_features": {
+        "kernel_size": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
-        },
-        "momentum": {
-            "required": "False",
-            "default": 0.1
-        },
-        "affine": {
-            "required": "False",
-            "default": true
-        },
-        "track_running_stats": {
-            "required": "False",
-            "default": true
-        },
-        "device": {
+        "stride": {
             "required": "False",
             "default": null
         },
-        "dtype": {
+        "padding": {
             "required": "False",
-            "default": null
+            "default": 0
+        },
+        "ceil_mode": {
+            "required": "False",
+            "default": false
+        },
+        "count_include_pad": {
+            "required": "False",
+            "default": true
         }
     },
     "forward_arguments": {

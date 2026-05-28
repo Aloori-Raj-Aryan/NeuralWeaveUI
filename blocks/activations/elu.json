@@ -1,8 +1,12 @@
 {
-    "name": "ReLU",
+    "name": "ELU",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.ELU",
     "init_arguments": {
+        "alpha": {
+            "required": "False",
+            "default": 1.0
+        },
         "inplace": {
             "required": "False",
             "default": false

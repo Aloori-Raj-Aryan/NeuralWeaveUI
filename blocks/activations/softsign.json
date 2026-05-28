@@ -1,13 +1,8 @@
 {
-    "name": "ReLU",
+    "name": "Softsign",
     "category": "Module",
-    "path": "torch.nn.ReLU",
-    "init_arguments": {
-        "inplace": {
-            "required": "False",
-            "default": false
-        }
-    },
+    "path": "torch.nn.Softsign",
+    "init_arguments": {},
     "forward_arguments": {
         "input": {
             "type": "Tensor",

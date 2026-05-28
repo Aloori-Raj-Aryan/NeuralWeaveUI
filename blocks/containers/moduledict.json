@@ -1,0 +1,15 @@
+{
+    "name": "ModuleDict",
+    "category": "Module",
+    "path": "torch.nn.ModuleDict",
+    "init_arguments": {
+        "modules": {
+            "required": "True",
+            "default": null
+        }
+    },
+    "forward_arguments": {},
+    "output": [
+        "output"
+    ]
+}

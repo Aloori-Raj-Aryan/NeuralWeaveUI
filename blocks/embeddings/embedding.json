@@ -1,27 +1,35 @@
 {
-    "name": "BatchNorm1d",
+    "name": "Embedding",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.Embedding",
     "init_arguments": {
-        "num_features": {
+        "num_embeddings": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
+        "embedding_dim": {
+            "required": "True",
+            "default": null
         },
-        "momentum": {
+        "padding_idx": {
             "required": "False",
-            "default": 0.1
+            "default": null
         },
-        "affine": {
+        "max_norm": {
             "required": "False",
-            "default": true
+            "default": null
         },
-        "track_running_stats": {
+        "norm_type": {
             "required": "False",
-            "default": true
+            "default": 2.0
+        },
+        "scale_grad_by_freq": {
+            "required": "False",
+            "default": false
+        },
+        "sparse": {
+            "required": "False",
+            "default": false
         },
         "device": {
             "required": "False",

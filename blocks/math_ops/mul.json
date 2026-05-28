@@ -1,10 +1,14 @@
 {
-    "name": "Sigmoid",
-    "category": "Module",
-    "path": "torch.nn.Sigmoid",
-    "init_arguments": {},
+    "name": "mul",
+    "category": "Function",
+    "path": "torch.mul",
     "forward_arguments": {
         "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "other": {
             "type": "Tensor",
             "required": "True",
             "default": null

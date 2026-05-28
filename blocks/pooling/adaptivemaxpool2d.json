@@ -1,9 +1,13 @@
 {
-    "name": "ReLU",
+    "name": "AdaptiveMaxPool2d",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.AdaptiveMaxPool2d",
     "init_arguments": {
-        "inplace": {
+        "output_size": {
+            "required": "True",
+            "default": null
+        },
+        "return_indices": {
             "required": "False",
             "default": false
         }

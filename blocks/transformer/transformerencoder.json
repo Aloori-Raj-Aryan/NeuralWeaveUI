@@ -1,0 +1,39 @@
+{
+    "name": "TransformerEncoder",
+    "category": "Module",
+    "path": "torch.nn.TransformerEncoder",
+    "init_arguments": {
+        "encoder_layer": {
+            "required": "True",
+            "default": null
+        },
+        "num_layers": {
+            "required": "False",
+            "default": 6
+        },
+        "norm": {
+            "required": "False",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "src": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "mask": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        },
+        "src_key_padding_mask": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

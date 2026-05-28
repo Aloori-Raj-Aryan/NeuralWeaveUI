@@ -1,0 +1,25 @@
+{
+    "name": "add",
+    "category": "Function",
+    "path": "torch.add",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "other": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "alpha": {
+            "type": "float",
+            "required": "False",
+            "default": 1.0
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

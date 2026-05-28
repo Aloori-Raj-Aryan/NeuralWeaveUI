@@ -1,11 +1,15 @@
 {
-    "name": "ReLU",
+    "name": "OneHot",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.functional.one_hot",
     "init_arguments": {
-        "inplace": {
+        "num_classes": {
+            "required": "True",
+            "default": null
+        },
+        "dtype": {
             "required": "False",
-            "default": false
+            "default": null
         }
     },
     "forward_arguments": {

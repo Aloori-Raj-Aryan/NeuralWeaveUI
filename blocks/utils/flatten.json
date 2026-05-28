@@ -1,0 +1,25 @@
+{
+    "name": "flatten",
+    "category": "Function",
+    "path": "torch.flatten",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "start_dim": {
+            "type": "int",
+            "required": "False",
+            "default": 1
+        },
+        "end_dim": {
+            "type": "int",
+            "required": "False",
+            "default": -1
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

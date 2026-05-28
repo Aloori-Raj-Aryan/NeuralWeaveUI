@@ -1,8 +1,7 @@
 {
-    "name": "Sigmoid",
-    "category": "Module",
-    "path": "torch.nn.Sigmoid",
-    "init_arguments": {},
+    "name": "Sparsemax",
+    "category": "Function",
+    "path": "torch.sparse.max",
     "forward_arguments": {
         "input": {
             "type": "Tensor",

@@ -1,0 +1,54 @@
+{
+    "name": "TransformerDecoder",
+    "category": "Module",
+    "path": "torch.nn.TransformerDecoder",
+    "init_arguments": {
+        "decoder_layer": {
+            "required": "True",
+            "default": null
+        },
+        "num_layers": {
+            "required": "False",
+            "default": 6
+        },
+        "norm": {
+            "required": "False",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "tgt": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "memory": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "tgt_mask": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        },
+        "memory_mask": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        },
+        "tgt_key_padding_mask": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        },
+        "memory_key_padding_mask": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

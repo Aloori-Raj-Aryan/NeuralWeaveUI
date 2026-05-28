@@ -1,0 +1,20 @@
+{
+    "name": "reshape",
+    "category": "Function",
+    "path": "torch.reshape",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "shape": {
+            "type": "Tuple[int]",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

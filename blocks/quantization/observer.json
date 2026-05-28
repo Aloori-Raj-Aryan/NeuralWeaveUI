@@ -1,11 +1,15 @@
 {
-    "name": "ReLU",
+    "name": "Observer",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.quantization.Observer",
     "init_arguments": {
-        "inplace": {
+        "dtype": {
             "required": "False",
-            "default": false
+            "default": null
+        },
+        "qscheme": {
+            "required": "False",
+            "default": null
         }
     },
     "forward_arguments": {

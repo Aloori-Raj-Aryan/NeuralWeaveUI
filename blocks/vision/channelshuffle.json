@@ -1,11 +1,11 @@
 {
-    "name": "ReLU",
+    "name": "ChannelShuffle",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.ChannelShuffle",
     "init_arguments": {
-        "inplace": {
-            "required": "False",
-            "default": false
+        "groups": {
+            "required": "True",
+            "default": null
         }
     },
     "forward_arguments": {

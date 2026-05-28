@@ -1,11 +1,15 @@
 {
-    "name": "ReLU",
+    "name": "PReLU",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.PReLU",
     "init_arguments": {
-        "inplace": {
+        "num_parameters": {
             "required": "False",
-            "default": false
+            "default": 1
+        },
+        "init": {
+            "required": "False",
+            "default": 0.25
         }
     },
     "forward_arguments": {

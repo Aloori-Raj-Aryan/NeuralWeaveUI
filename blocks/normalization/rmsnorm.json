@@ -1,31 +1,19 @@
 {
-    "name": "BatchNorm1d",
+    "name": "RMSNorm",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.RMSNorm",
     "init_arguments": {
-        "num_features": {
+        "normalized_shape": {
             "required": "True",
             "default": null
         },
         "eps": {
             "required": "False",
-            "default": 1e-05
+            "default": 1e-08
         },
-        "momentum": {
-            "required": "False",
-            "default": 0.1
-        },
-        "affine": {
+        "elementwise_affine": {
             "required": "False",
             "default": true
-        },
-        "track_running_stats": {
-            "required": "False",
-            "default": true
-        },
-        "device": {
-            "required": "False",
-            "default": null
         },
         "dtype": {
             "required": "False",

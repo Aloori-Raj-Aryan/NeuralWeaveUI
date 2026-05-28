@@ -1,0 +1,25 @@
+{
+    "name": "split",
+    "category": "Function",
+    "path": "torch.split",
+    "forward_arguments": {
+        "tensor": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "split_size_or_sections": {
+            "type": "int",
+            "required": "True",
+            "default": null
+        },
+        "dim": {
+            "type": "int",
+            "required": "False",
+            "default": 0
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

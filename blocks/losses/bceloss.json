@@ -1,15 +1,20 @@
 {
-    "name": "ReLU",
+    "name": "BCELoss",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.BCELoss",
     "init_arguments": {
-        "inplace": {
+        "reduction": {
             "required": "False",
-            "default": false
+            "default": "mean"
         }
     },
     "forward_arguments": {
         "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "target": {
             "type": "Tensor",
             "required": "True",
             "default": null

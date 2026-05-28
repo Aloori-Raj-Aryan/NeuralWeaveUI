@@ -1,27 +1,43 @@
 {
-    "name": "BatchNorm1d",
+    "name": "Conv3D",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.Conv3d",
     "init_arguments": {
-        "num_features": {
+        "in_channels": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
+        "out_channels": {
+            "required": "True",
+            "default": null
         },
-        "momentum": {
-            "required": "False",
-            "default": 0.1
+        "kernel_size": {
+            "required": "True",
+            "default": null
         },
-        "affine": {
+        "stride": {
+            "required": "False",
+            "default": 1
+        },
+        "padding": {
+            "required": "False",
+            "default": 0
+        },
+        "dilation": {
+            "required": "False",
+            "default": 1
+        },
+        "groups": {
+            "required": "False",
+            "default": 1
+        },
+        "bias": {
             "required": "False",
             "default": true
         },
-        "track_running_stats": {
+        "padding_mode": {
             "required": "False",
-            "default": true
+            "default": "zeros"
         },
         "device": {
             "required": "False",

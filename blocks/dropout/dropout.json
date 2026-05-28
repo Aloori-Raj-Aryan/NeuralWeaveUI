@@ -1,8 +1,12 @@
 {
-    "name": "ReLU",
+    "name": "Dropout",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.Dropout",
     "init_arguments": {
+        "p": {
+            "required": "False",
+            "default": 0.5
+        },
         "inplace": {
             "required": "False",
             "default": false

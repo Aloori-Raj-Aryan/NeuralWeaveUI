@@ -1,31 +1,23 @@
 {
-    "name": "MaxPool2d",
+    "name": "Unfold",
     "category": "Module",
-    "path": "torch.nn.MaxPool2d",
+    "path": "torch.nn.Unfold",
     "init_arguments": {
         "kernel_size": {
             "required": "True",
             "default": null
         },
-        "stride": {
+        "dilation": {
             "required": "False",
-            "default": null
+            "default": 1
         },
         "padding": {
             "required": "False",
             "default": 0
         },
-        "dilation": {
+        "stride": {
             "required": "False",
             "default": 1
-        },
-        "return_indices": {
-            "required": "False",
-            "default": false
-        },
-        "ceil_mode": {
-            "required": "False",
-            "default": false
         }
     },
     "forward_arguments": {

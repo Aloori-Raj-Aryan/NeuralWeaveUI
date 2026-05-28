@@ -1,7 +1,7 @@
 {
-    "name": "BatchNorm1d",
+    "name": "BatchNorm3d",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.BatchNorm3d",
     "init_arguments": {
         "num_features": {
             "required": "True",

@@ -1,31 +1,23 @@
 {
-    "name": "MaxPool2d",
+    "name": "FakeQuantize",
     "category": "Module",
-    "path": "torch.nn.MaxPool2d",
+    "path": "torch.quantization.FakeQuantize",
     "init_arguments": {
-        "kernel_size": {
-            "required": "True",
-            "default": null
-        },
-        "stride": {
+        "observer": {
             "required": "False",
             "default": null
         },
-        "padding": {
+        "quant_min": {
             "required": "False",
             "default": 0
         },
-        "dilation": {
+        "quant_max": {
             "required": "False",
-            "default": 1
+            "default": 255
         },
-        "return_indices": {
+        "dtype": {
             "required": "False",
-            "default": false
-        },
-        "ceil_mode": {
-            "required": "False",
-            "default": false
+            "default": null
         }
     },
     "forward_arguments": {

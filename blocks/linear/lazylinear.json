@@ -1,25 +1,13 @@
 {
-    "name": "BatchNorm1d",
+    "name": "LazyLinear",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.LazyLinear",
     "init_arguments": {
-        "num_features": {
+        "out_features": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
-        },
-        "momentum": {
-            "required": "False",
-            "default": 0.1
-        },
-        "affine": {
-            "required": "False",
-            "default": true
-        },
-        "track_running_stats": {
+        "bias": {
             "required": "False",
             "default": true
         },

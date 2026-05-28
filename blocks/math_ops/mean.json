@@ -1,0 +1,25 @@
+{
+    "name": "mean",
+    "category": "Function",
+    "path": "torch.mean",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "dim": {
+            "type": "int",
+            "required": "False",
+            "default": null
+        },
+        "keepdim": {
+            "type": "bool",
+            "required": "False",
+            "default": false
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

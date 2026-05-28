@@ -1,11 +1,11 @@
 {
-    "name": "ReLU",
+    "name": "GLU",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.GLU",
     "init_arguments": {
-        "inplace": {
+        "dim": {
             "required": "False",
-            "default": false
+            "default": -1
         }
     },
     "forward_arguments": {

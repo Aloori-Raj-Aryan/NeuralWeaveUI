@@ -1,8 +1,12 @@
 {
-    "name": "ReLU",
+    "name": "LeakyReLU",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.LeakyReLU",
     "init_arguments": {
+        "negative_slope": {
+            "required": "False",
+            "default": 0.01
+        },
         "inplace": {
             "required": "False",
             "default": false

@@ -1,35 +1,39 @@
 {
-    "name": "BatchNorm1d",
+    "name": "LazyConv2d",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.LazyConv2d",
     "init_arguments": {
-        "num_features": {
+        "out_channels": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
+        "kernel_size": {
+            "required": "True",
+            "default": null
         },
-        "momentum": {
+        "stride": {
             "required": "False",
-            "default": 0.1
+            "default": 1
         },
-        "affine": {
+        "padding": {
+            "required": "False",
+            "default": 0
+        },
+        "dilation": {
+            "required": "False",
+            "default": 1
+        },
+        "groups": {
+            "required": "False",
+            "default": 1
+        },
+        "bias": {
             "required": "False",
             "default": true
         },
-        "track_running_stats": {
+        "padding_mode": {
             "required": "False",
-            "default": true
-        },
-        "device": {
-            "required": "False",
-            "default": null
-        },
-        "dtype": {
-            "required": "False",
-            "default": null
+            "default": "zeros"
         }
     },
     "forward_arguments": {

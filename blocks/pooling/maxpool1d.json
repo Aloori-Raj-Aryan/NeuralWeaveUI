@@ -1,35 +1,31 @@
 {
-    "name": "BatchNorm1d",
+    "name": "MaxPool1d",
     "category": "Module",
-    "path": "torch.nn.BatchNorm1d",
+    "path": "torch.nn.MaxPool1d",
     "init_arguments": {
-        "num_features": {
+        "kernel_size": {
             "required": "True",
             "default": null
         },
-        "eps": {
-            "required": "False",
-            "default": 1e-05
-        },
-        "momentum": {
-            "required": "False",
-            "default": 0.1
-        },
-        "affine": {
-            "required": "False",
-            "default": true
-        },
-        "track_running_stats": {
-            "required": "False",
-            "default": true
-        },
-        "device": {
+        "stride": {
             "required": "False",
             "default": null
         },
-        "dtype": {
+        "padding": {
             "required": "False",
-            "default": null
+            "default": 0
+        },
+        "dilation": {
+            "required": "False",
+            "default": 1
+        },
+        "return_indices": {
+            "required": "False",
+            "default": false
+        },
+        "ceil_mode": {
+            "required": "False",
+            "default": false
         }
     },
     "forward_arguments": {

@@ -1,31 +1,23 @@
 {
-    "name": "MaxPool2d",
+    "name": "Upsample",
     "category": "Module",
-    "path": "torch.nn.MaxPool2d",
+    "path": "torch.nn.Upsample",
     "init_arguments": {
-        "kernel_size": {
-            "required": "True",
-            "default": null
-        },
-        "stride": {
+        "size": {
             "required": "False",
             "default": null
         },
-        "padding": {
+        "scale_factor": {
             "required": "False",
-            "default": 0
+            "default": null
         },
-        "dilation": {
+        "mode": {
             "required": "False",
-            "default": 1
+            "default": "nearest"
         },
-        "return_indices": {
+        "align_corners": {
             "required": "False",
-            "default": false
-        },
-        "ceil_mode": {
-            "required": "False",
-            "default": false
+            "default": null
         }
     },
     "forward_arguments": {

@@ -1,7 +1,7 @@
 {
-    "name": "ReLU",
+    "name": "SELU",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.SELU",
     "init_arguments": {
         "inplace": {
             "required": "False",

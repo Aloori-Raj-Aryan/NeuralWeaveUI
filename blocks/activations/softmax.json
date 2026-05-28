@@ -1,11 +1,15 @@
 {
-    "name": "ReLU",
+    "name": "Softmax",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.Softmax",
     "init_arguments": {
-        "inplace": {
+        "dim": {
+            "required": "True",
+            "default": 1
+        },
+        "dtype": {
             "required": "False",
-            "default": false
+            "default": null
         }
     },
     "forward_arguments": {

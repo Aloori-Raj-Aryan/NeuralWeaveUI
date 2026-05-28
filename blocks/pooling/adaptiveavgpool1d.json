@@ -1,11 +1,11 @@
 {
-    "name": "ReLU",
+    "name": "AdaptiveAvgPool1d",
     "category": "Module",
-    "path": "torch.nn.ReLU",
+    "path": "torch.nn.AdaptiveAvgPool1d",
     "init_arguments": {
-        "inplace": {
-            "required": "False",
-            "default": false
+        "output_size": {
+            "required": "True",
+            "default": null
         }
     },
     "forward_arguments": {

@@ -1,0 +1,25 @@
+{
+    "name": "where",
+    "category": "Function",
+    "path": "torch.where",
+    "forward_arguments": {
+        "condition": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "x": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "y": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

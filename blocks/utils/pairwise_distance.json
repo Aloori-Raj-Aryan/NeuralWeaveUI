@@ -1,0 +1,35 @@
+{
+    "name": "pairwise_distance",
+    "category": "Function",
+    "path": "torch.nn.functional.pairwise_distance",
+    "forward_arguments": {
+        "x1": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "x2": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "p": {
+            "type": "float",
+            "required": "False",
+            "default": 2.0
+        },
+        "eps": {
+            "type": "float",
+            "required": "False",
+            "default": 1e-06
+        },
+        "reduction": {
+            "type": "str",
+            "required": "False",
+            "default": "mean"
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

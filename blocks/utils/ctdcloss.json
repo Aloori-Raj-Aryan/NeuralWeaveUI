@@ -1,0 +1,48 @@
+{
+    "name": "CTDCLoss",
+    "category": "Module",
+    "path": "torch.nn.CTDCLoss",
+    "init_arguments": {
+        "vocab_size": {
+            "required": "True",
+            "default": null
+        },
+        "blank": {
+            "required": "False",
+            "default": 0
+        },
+        "reduction": {
+            "required": "False",
+            "default": "mean"
+        },
+        "zero_infinity": {
+            "required": "False",
+            "default": false
+        }
+    },
+    "forward_arguments": {
+        "log_probs": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "targets": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "input_lengths": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "target_lengths": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}
