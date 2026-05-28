@@ -12,8 +12,12 @@
   const searchDropdown = document.getElementById('searchDropdown');
   const searchResults = document.getElementById('searchResults');
   const zoomLabel = document.getElementById('zoomLabel');
+  const savedGraphsListEl = document.getElementById('savedGraphsList');
+  const sessionLabelEl = document.getElementById('sessionLabel');
+  const SESSION_STORAGE_KEY = 'nwui_session';
 
   let blocks = [];
+  let sessionId = null;
   let nodes = [];
   let connections = [];
   let selectedNodeIds = new Set();
@@ -96,7 +100,220 @@
   }
 
   function fetchBlocks(){
-    return fetch('/api/blocks').then(r=>r.json()).then(r=>{ blocks = r.blocks || []; renderPalette(); });
+    return apiFetch('/api/blocks').then(r => r.json()).then(r => { blocks = r.blocks || []; renderPalette(); });
+  }
+
+  function apiFetch(url, options = {}){
+    const headers = Object.assign({}, options.headers || {});
+    if (sessionId) headers['X-Session-Id'] = sessionId;
+    return fetch(url, Object.assign({}, options, { headers }));
+  }
+
+  function updateSessionLabel(){
+    if (!sessionLabelEl || !sessionId) return;
+    sessionLabelEl.textContent = `Session ${sessionId.slice(0, 8)}… — reload starts a new session`;
+  }
+
+  async function readJsonResponse(res){
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(
+        'Server returned a non-JSON response. ' +
+        'Make sure you restarted with the latest code: node server.js'
+      );
+    }
+  }
+
+  async function checkServerHealth(){
+    const res = await fetch('/api/health');
+    const data = await readJsonResponse(res);
+    if (!res.ok || !data.ok){
+      throw new Error(data.error || `Health check failed (HTTP ${res.status})`);
+    }
+    if (!data.sessionApi){
+      throw new Error('Server is missing session support. Pull the latest code and restart.');
+    }
+    return data;
+  }
+
+  async function initSession(){
+    await checkServerHealth();
+
+    const previous = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (previous){
+      try {
+        await fetch(`/api/session/${previous}`, { method: 'DELETE' });
+      } catch (e) { /* ignore */ }
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cleanOthers: !previous })
+    });
+    const data = await readJsonResponse(res);
+    if (!res.ok || !data.ok){
+      throw new Error(data.error || `Failed to start session (HTTP ${res.status})`);
+    }
+    if (!data.sessionId){
+      throw new Error('Session API did not return a session id');
+    }
+    sessionId = data.sessionId;
+    sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    updateSessionLabel();
+  }
+
+  async function suggestGraphName(){
+    const res = await apiFetch('/api/graphs');
+    const data = await readJsonResponse(res);
+    const names = new Set((data.ok && data.graphs ? data.graphs : []).map(g => g.name));
+    let i = 1;
+    let candidate = 'graph-1.json';
+    while (names.has(candidate)){
+      i += 1;
+      candidate = `graph-${i}.json`;
+    }
+    return candidate.replace(/\.json$/, '');
+  }
+
+  async function graphNameExists(name){
+    const filename = name.endsWith('.json') ? name : name + '.json';
+    const res = await apiFetch('/api/graphs');
+    const data = await readJsonResponse(res);
+    if (!data.ok || !data.graphs) return false;
+    return data.graphs.some(g => g.name === filename);
+  }
+
+  async function fetchSavedGraphs(){
+    if (!savedGraphsListEl) return;
+    const res = await apiFetch('/api/graphs');
+    const data = await res.json();
+    if (!data.ok){
+      savedGraphsListEl.innerHTML = '<div class="savedGraphsEmpty">Could not load saved graphs</div>';
+      return;
+    }
+    renderSavedGraphs(data.graphs || []);
+  }
+
+  function renderSavedGraphs(graphs){
+    savedGraphsListEl.innerHTML = '';
+    if (!graphs.length){
+      savedGraphsListEl.innerHTML = '<div class="savedGraphsEmpty">No saved graphs in this session</div>';
+      return;
+    }
+    graphs.forEach(g => {
+      const row = document.createElement('div');
+      row.className = 'savedGraphItem';
+
+      const loadBtn = document.createElement('button');
+      loadBtn.type = 'button';
+      loadBtn.textContent = g.name;
+      loadBtn.title = `Load ${g.name}`;
+      loadBtn.onclick = () => loadGraphFromSession(g.name);
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'deleteGraphBtn';
+      delBtn.textContent = '×';
+      delBtn.title = `Delete ${g.name}`;
+      delBtn.onclick = () => deleteGraphFromSession(g.name);
+
+      row.appendChild(loadBtn);
+      row.appendChild(delBtn);
+      savedGraphsListEl.appendChild(row);
+    });
+  }
+
+  function findBlockDef(name, blockPath){
+    return blocks.find(b => b.name === name && (b.path || '') === (blockPath || ''))
+      || blocks.find(b => b.name === name);
+  }
+
+  function clearCanvas(){
+    nodes.forEach(n => {
+      const el = nodeElement(n.id);
+      if (el) el.remove();
+    });
+    nodes = [];
+    connections = [];
+    clearSelection();
+    cancelBlockPlacement();
+    resizeSvgLayer();
+    updateConnections();
+    updateExportButtonState();
+  }
+
+  async function loadGraphFromSession(name){
+    const res = await apiFetch(`/api/graphs/${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (!data.ok){
+      alert('Failed to load graph: ' + (data.error || 'unknown error'));
+      return;
+    }
+
+    clearCanvas();
+    const idMap = {};
+
+    (data.graph.nodes || []).forEach(n => {
+      const blockDef = findBlockDef(n.block, n.path);
+      if (!blockDef){
+        console.warn('Missing block definition for', n.block, n.path);
+        return;
+      }
+      const newId = newNodeId();
+      idMap[n.id] = newId;
+      const node = {
+        id: newId,
+        block: blockDef,
+        x: n.x,
+        y: n.y,
+        saved: true,
+        init_arguments: n.init_arguments || {},
+        outputs: n.outputs || getBlockOutputs(blockDef),
+        inputs: n.inputs || getBlockInputs(blockDef)
+      };
+      normalizeNodePorts(node);
+      nodes.push(node);
+      renderNode(node);
+      const nel = nodeElement(newId);
+      if (nel){
+        const top = nel.querySelector('.nodeHeaderTop');
+        if (top && !top.querySelector('.savedBadge')){
+          const badge = document.createElement('span');
+          badge.className = 'savedBadge';
+          badge.textContent = 'saved';
+          top.appendChild(badge);
+        }
+      }
+    });
+
+    (data.graph.connections || []).forEach(c => {
+      if (!idMap[c.from] || !idMap[c.to]) return;
+      connections.push({
+        from: idMap[c.from],
+        fromIndex: c.fromIndex,
+        to: idMap[c.to],
+        toIndex: c.toIndex
+      });
+    });
+
+    updateConnections();
+    updateExportButtonState();
+    clearSelection();
+  }
+
+  async function deleteGraphFromSession(name){
+    if (!confirm(`Delete saved graph "${name}"?`)) return;
+    const res = await apiFetch(`/api/graphs/${encodeURIComponent(name)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!data.ok){
+      alert('Delete failed: ' + (data.error || 'unknown error'));
+      return;
+    }
+    fetchSavedGraphs();
   }
 
   function formatCategoryName(folder){
@@ -1192,29 +1409,71 @@
   document.addEventListener('click', closeSearchOnClickOutside);
 
   // export graph
-  exportBtn.onclick = () => {
+  exportBtn.onclick = async () => {
     if (!allNodesSaved()){
       alert('All blocks must be saved before saving the graph.');
       return;
     }
-    const name = prompt('What should be the name of the graph?', 'my-graph');
-    if (name === null) return;
-    const trimmed = name.trim();
-    if (!trimmed){
-      alert('Graph name cannot be empty.');
-      return;
+    let defaultName = 'graph-1';
+    try {
+      defaultName = await suggestGraphName();
+    } catch (e) { /* use fallback */ }
+
+    let promptMessage = 'What should be the name of the graph?';
+    let filename = null;
+
+    while (!filename){
+      const name = prompt(promptMessage, defaultName);
+      if (name === null) return;
+
+      const trimmed = name.trim();
+      if (!trimmed){
+        promptMessage = 'Graph name cannot be empty. Enter a name:';
+        defaultName = name;
+        continue;
+      }
+
+      const candidate = trimmed.endsWith('.json') ? trimmed : trimmed + '.json';
+      if (await graphNameExists(candidate)){
+        promptMessage = `"${candidate}" already exists in this session. Enter a different name:`;
+        defaultName = trimmed.replace(/\.json$/i, '');
+        continue;
+      }
+
+      filename = candidate;
     }
-    const filename = trimmed.endsWith('.json') ? trimmed : trimmed + '.json';
+
     const graph = { nodes: nodes.map(n=>({ id:n.id, block: n.block.name, path:n.block.path, x:n.x, y:n.y, init_arguments:n.init_arguments, outputs:n.outputs, inputs:n.inputs })), connections };
-    fetch('/api/save_graph', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ graph, name: filename }) })
+    apiFetch('/api/save_graph', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ graph, name: filename })
+    })
       .then(r => r.json())
-      .then(j => { if (j.ok) alert('Saved to ' + j.path); else alert('Save failed'); })
+      .then(j => {
+        if (j.ok){
+          alert('Saved as ' + j.name);
+          fetchSavedGraphs();
+        } else {
+          alert('Save failed: ' + (j.error || 'unknown error'));
+        }
+      })
       .catch(e => { alert('Save failed: ' + e.message); });
   };
 
-  // init
-  applyCanvasZoom();
-  resizeSvgLayer();
-  updateExportButtonState();
-  fetchBlocks();
+  async function boot(){
+    try {
+      await initSession();
+    } catch (err){
+      alert('Could not start session: ' + err.message);
+      return;
+    }
+    applyCanvasZoom();
+    resizeSvgLayer();
+    updateExportButtonState();
+    await fetchBlocks();
+    await fetchSavedGraphs();
+  }
+
+  boot();
 })();

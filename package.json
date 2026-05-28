@@ -2,6 +2,9 @@
   "name": "neuralweave-ui-local",
   "version": "0.1.0",
   "main": "server.js",
+  "engines": {
+    "node": ">=12.10.0"
+  },
   "scripts": {
     "start": "node server.js"
   },
