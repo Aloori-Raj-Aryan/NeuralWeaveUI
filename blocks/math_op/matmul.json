@@ -1,0 +1,12 @@
+{
+    "name": "matmul",
+    "category": "Function",
+    "path": "torch.matmul",
+    "forward_arguments": {
+        "input": {"type": "Tensor", "required": "True", "default": null},
+        "other": {"type": "Tensor", "required": "True", "default": null}
+    },
+    "output": [
+        "output"
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "name": "cat",
+    "category": "Function",
+    "path": "torch.cat",
+    "forward_arguments": {
+        "tensors": {"type": "Tensor[]", "required": "True", "default": null},
+        "dim": {"type": "int", "required": "False", "default": 0}
+    },
+    "output": [
+        "output"
+    ]
+}
