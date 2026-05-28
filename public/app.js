@@ -256,17 +256,40 @@
     applyCanvasZoom();
   }
 
-  function zoomAt(clientX, clientY, delta){
+  function zoomToAt(clientX, clientY, newZoom){
     const rect = canvas.getBoundingClientRect();
     const mx = clientX - rect.left;
     const my = clientY - rect.top;
     const wx = (canvas.scrollLeft + mx) / canvasZoom;
     const wy = (canvas.scrollTop + my) / canvasZoom;
     const oldZoom = canvasZoom;
-    setCanvasZoom(canvasZoom + delta);
+    setCanvasZoom(newZoom);
     if (canvasZoom === oldZoom) return;
     canvas.scrollLeft = wx * canvasZoom - mx;
     canvas.scrollTop = wy * canvasZoom - my;
+  }
+
+  function zoomAt(clientX, clientY, delta){
+    zoomToAt(clientX, clientY, canvasZoom + delta);
+  }
+
+  function touchDistance(touches){
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  function touchCenter(touches){
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2
+    };
+  }
+
+  let touchGesture = null;
+
+  function endTouchGesture(){
+    touchGesture = null;
   }
 
   function nodeElement(nodeId){
@@ -867,10 +890,65 @@
   });
 
   canvas.addEventListener('wheel', (e) => {
+    // Trackpad pinch-to-zoom (macOS/Windows send wheel + ctrlKey)
+    if (e.ctrlKey){
+      e.preventDefault();
+      const factor = Math.exp(-e.deltaY * 0.01);
+      zoomToAt(e.clientX, e.clientY, canvasZoom * factor);
+      return;
+    }
+
+    // Two-finger scroll on trackpad / mouse wheel scroll
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-    zoomAt(e.clientX, e.clientY, delta);
+    canvas.scrollLeft += e.deltaX;
+    canvas.scrollTop += e.deltaY;
   }, { passive: false });
+
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 2) return;
+    const center = touchCenter(e.touches);
+    touchGesture = {
+      lastDist: touchDistance(e.touches),
+      lastCenter: center
+    };
+    e.preventDefault();
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (!touchGesture || e.touches.length !== 2) return;
+    e.preventDefault();
+
+    const dist = touchDistance(e.touches);
+    const center = touchCenter(e.touches);
+    const scaleFactor = dist / touchGesture.lastDist;
+
+    if (Math.abs(scaleFactor - 1) > 0.002){
+      zoomToAt(center.x, center.y, canvasZoom * scaleFactor);
+    }
+
+    canvas.scrollLeft -= center.x - touchGesture.lastCenter.x;
+    canvas.scrollTop -= center.y - touchGesture.lastCenter.y;
+
+    touchGesture.lastDist = dist;
+    touchGesture.lastCenter = center;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) endTouchGesture();
+  });
+
+  canvas.addEventListener('touchcancel', endTouchGesture);
+
+  let gestureStartZoom = 1;
+  canvas.addEventListener('gesturestart', (e) => {
+    e.preventDefault();
+    gestureStartZoom = canvasZoom;
+  });
+  canvas.addEventListener('gesturechange', (e) => {
+    e.preventDefault();
+    zoomToAt(e.clientX, e.clientY, gestureStartZoom * e.scale);
+  });
+  canvas.addEventListener('gestureend', (e) => e.preventDefault());
 
   // accept drops from palette
   canvas.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });

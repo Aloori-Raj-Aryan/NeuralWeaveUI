@@ -273,6 +273,7 @@ html, body, #app {
   inset: 0;
   overflow: auto;
   outline: none;
+  touch-action: none;
 }
 
 #canvasContent {
