@@ -24,7 +24,6 @@
       </div>
       <div id="blocksList"></div>
       <div class="paletteFooter">
-        <button id="reloadBlocksBtn" class="secondary">Reload Blocks</button>
         <button id="exportBtn" class="primary">Save Graph</button>
       </div>
     </aside>
@@ -33,11 +32,10 @@
         <div id="canvasContent">
           <svg id="connectionsSvg"></svg>
         </div>
+        <div id="canvasScrollSizer" aria-hidden="true"></div>
       </div>
       <div id="zoomControls" class="zoomControls">
-        <button type="button" id="zoomOutBtn" title="Zoom out">−</button>
         <span id="zoomLabel">100%</span>
-        <button type="button" id="zoomInBtn" title="Zoom in">+</button>
       </div>
     </main>
     <aside id="sidebar">

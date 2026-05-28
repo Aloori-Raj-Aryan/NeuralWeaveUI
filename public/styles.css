@@ -288,35 +288,23 @@ html, body, #app {
   bottom: 14px;
   display: flex;
   align-items: center;
-  gap: 4px;
   background: rgba(22, 25, 34, 0.88);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 4px;
+  padding: 6px 10px;
   z-index: 5;
   backdrop-filter: blur(6px);
 }
 
-.zoomControls button {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text);
-  font-size: 16px;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.zoomControls button:hover { background: rgba(255, 255, 255, 0.08); }
-
 #zoomLabel {
-  min-width: 44px;
-  text-align: center;
   font-size: 11px;
   font-family: var(--mono);
   color: var(--text-muted);
+}
+
+#canvasScrollSizer {
+  pointer-events: none;
+  visibility: hidden;
 }
 
 #connectionsSvg {

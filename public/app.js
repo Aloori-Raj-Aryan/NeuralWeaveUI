@@ -2,16 +2,14 @@
   const blocksListEl = document.getElementById('blocksList');
   const canvas = document.getElementById('canvas');
   const canvasContent = document.getElementById('canvasContent');
+  const canvasScrollSizer = document.getElementById('canvasScrollSizer');
   const svg = document.getElementById('connectionsSvg');
   const propsEl = document.getElementById('props');
   const propsEmpty = document.getElementById('propsEmpty');
   const exportBtn = document.getElementById('exportBtn');
-  const reloadBlocksBtn = document.getElementById('reloadBlocksBtn');
   const blockSearchInput = document.getElementById('blockSearch');
   const searchDropdown = document.getElementById('searchDropdown');
   const searchResults = document.getElementById('searchResults');
-  const zoomInBtn = document.getElementById('zoomInBtn');
-  const zoomOutBtn = document.getElementById('zoomOutBtn');
   const zoomLabel = document.getElementById('zoomLabel');
 
   let blocks = [];
@@ -25,9 +23,8 @@
   let lastMousePos = { x: 0, y: 0 };
   let clipboard = null;
   let canvasZoom = 1;
-  const ZOOM_MIN = 0.25;
   const ZOOM_MAX = 2.5;
-  const ZOOM_STEP = 0.1;
+  const ZOOM_STEP = 0.08;
 
   function closeSearchDropdown(){
     searchDropdown.classList.remove('open');
@@ -198,20 +195,78 @@
     };
   }
 
-  function clampZoom(value){
-    return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+  function getContentBounds(){
+    if (!nodes.length){
+      return { minX: 0, minY: 0, width: canvas.clientWidth || 800, height: canvas.clientHeight || 600 };
+    }
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    nodes.forEach(n => {
+      const el = nodeElement(n.id);
+      const w = el ? el.offsetWidth : NODE_MIN_WIDTH;
+      const h = el ? el.offsetHeight : 140;
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x + w);
+      maxY = Math.max(maxY, n.y + h);
+    });
+    const pad = 80;
+    return {
+      minX: minX - pad,
+      minY: minY - pad,
+      width: maxX - minX + pad * 2,
+      height: maxY - minY + pad * 2
+    };
+  }
+
+  function getMinZoom(){
+    if (!nodes.length) return 0.25;
+    const bounds = getContentBounds();
+    const pad = 32;
+    const fitX = (canvas.clientWidth - pad) / bounds.width;
+    const fitY = (canvas.clientHeight - pad) / bounds.height;
+    const fitZoom = Math.min(fitX, fitY);
+    return Math.max(0.08, Math.min(1, fitZoom));
+  }
+
+  function updateCanvasScrollSize(){
+    const bounds = getContentBounds();
+    canvasContent.style.width = bounds.width + 'px';
+    canvasContent.style.height = bounds.height + 'px';
+    canvasScrollSizer.style.width = (bounds.width * canvasZoom) + 'px';
+    canvasScrollSizer.style.height = (bounds.height * canvasZoom) + 'px';
   }
 
   function applyCanvasZoom(){
     canvasContent.style.transform = `scale(${canvasZoom})`;
     zoomLabel.textContent = Math.round(canvasZoom * 100) + '%';
+    updateCanvasScrollSize();
     resizeSvgLayer();
     updateConnections();
+  }
+
+  function clampZoom(value){
+    return Math.min(ZOOM_MAX, Math.max(getMinZoom(), value));
   }
 
   function setCanvasZoom(nextZoom){
     canvasZoom = clampZoom(nextZoom);
     applyCanvasZoom();
+  }
+
+  function zoomAt(clientX, clientY, delta){
+    const rect = canvas.getBoundingClientRect();
+    const mx = clientX - rect.left;
+    const my = clientY - rect.top;
+    const wx = (canvas.scrollLeft + mx) / canvasZoom;
+    const wy = (canvas.scrollTop + my) / canvasZoom;
+    const oldZoom = canvasZoom;
+    setCanvasZoom(canvasZoom + delta);
+    if (canvasZoom === oldZoom) return;
+    canvas.scrollLeft = wx * canvasZoom - mx;
+    canvas.scrollTop = wy * canvasZoom - my;
   }
 
   function nodeElement(nodeId){
@@ -296,6 +351,13 @@
     setSelection([node.id]);
   }
 
+  function toggleNodeSelection(node){
+    const next = new Set(selectedNodeIds);
+    if (next.has(node.id)) next.delete(node.id);
+    else next.add(node.id);
+    setSelection(Array.from(next));
+  }
+
   function selectAllNodes(){
     if (!nodes.length) return;
     setSelection(nodes.map(n => n.id));
@@ -317,7 +379,7 @@
       propsEl.style.display = 'block';
       const msg = document.createElement('div');
       msg.className = 'propsMulti';
-      msg.textContent = `${selected.length} blocks selected. Use ⌘/Ctrl+A to select all, copy, cut, paste, or delete.`;
+      msg.textContent = `${selected.length} blocks selected. Shift+click to add/remove, ⌘/Ctrl+A for all.`;
       propsEl.appendChild(msg);
       return;
     }
@@ -497,9 +559,11 @@
 
     header.addEventListener('pointerdown', (ev) => {
       canvas.focus();
-      if (!selectedNodeIds.has(node.id)){
+      if (!ev.shiftKey && !selectedNodeIds.has(node.id)){
         selectSingleNode(node);
       }
+      if (ev.shiftKey && !selectedNodeIds.has(node.id)) return;
+
       dragging = node;
       didDrag = false;
       dragOffsets = new Map();
@@ -513,7 +577,9 @@
 
     el.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      if (!didDrag) selectSingleNode(node);
+      if (didDrag) return;
+      if (ev.shiftKey) toggleNodeSelection(node);
+      else selectSingleNode(node);
     });
 
     canvasContent.appendChild(el);
@@ -801,13 +867,10 @@
   });
 
   canvas.addEventListener('wheel', (e) => {
-    if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
-    changeCanvasZoom(e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP);
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    zoomAt(e.clientX, e.clientY, delta);
   }, { passive: false });
-
-  zoomInBtn.onclick = () => changeCanvasZoom(ZOOM_STEP);
-  zoomOutBtn.onclick = () => changeCanvasZoom(-ZOOM_STEP);
 
   // accept drops from palette
   canvas.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
@@ -863,22 +926,13 @@
       return;
     }
 
-    if (isCanvasShortcutContext()){
-      if (key === '=' || key === '+'){
-        changeCanvasZoom(ZOOM_STEP);
-        e.preventDefault();
-      } else if (key === '-'){
-        changeCanvasZoom(-ZOOM_STEP);
-        e.preventDefault();
-      } else if (key === '0'){
-        setCanvasZoom(1);
-        e.preventDefault();
-      }
+    if (isCanvasShortcutContext() && key === '0'){
+      setCanvasZoom(1);
+      canvas.scrollLeft = 0;
+      canvas.scrollTop = 0;
+      e.preventDefault();
     }
   });
-
-  // reload palette from disk
-  reloadBlocksBtn.onclick = () => fetchBlocks();
 
   // search functionality
   blockSearchInput.addEventListener('input', (e) => {
