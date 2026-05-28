@@ -1,6 +1,7 @@
 (function(){
   const blocksListEl = document.getElementById('blocksList');
   const canvas = document.getElementById('canvas');
+  const canvasContent = document.getElementById('canvasContent');
   const svg = document.getElementById('connectionsSvg');
   const propsEl = document.getElementById('props');
   const propsEmpty = document.getElementById('propsEmpty');
@@ -9,16 +10,24 @@
   const blockSearchInput = document.getElementById('blockSearch');
   const searchDropdown = document.getElementById('searchDropdown');
   const searchResults = document.getElementById('searchResults');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomLabel = document.getElementById('zoomLabel');
 
   let blocks = [];
   let nodes = [];
   let connections = [];
-  let selectedNode = null;
-  let dragging = null; // node being dragged
-  let dragOffset = {x:0,y:0};
-  let drawingConn = null; // {fromNodeId, outIndex, startX, startY}
-  let lastMousePos = {x:0,y:0};
-  let clipboardNode = null;
+  let selectedNodeIds = new Set();
+  let dragging = null;
+  let dragOffsets = new Map();
+  let didDrag = false;
+  let drawingConn = null;
+  let lastMousePos = { x: 0, y: 0 };
+  let clipboard = null;
+  let canvasZoom = 1;
+  const ZOOM_MIN = 0.25;
+  const ZOOM_MAX = 2.5;
+  const ZOOM_STEP = 0.1;
 
   function closeSearchDropdown(){
     searchDropdown.classList.remove('open');
@@ -173,12 +182,36 @@
   const NODE_MIN_WIDTH = 240;
 
   function handleCenter(node, handleEl){
-    const canvasRect = canvas.getBoundingClientRect();
+    const contentRect = canvasContent.getBoundingClientRect();
     const r = handleEl.getBoundingClientRect();
     return {
-      x: r.left + r.width / 2 - canvasRect.left + canvas.scrollLeft,
-      y: r.top + r.height / 2 - canvasRect.top + canvas.scrollTop
+      x: (r.left + r.width / 2 - contentRect.left) / canvasZoom,
+      y: (r.top + r.height / 2 - contentRect.top) / canvasZoom
     };
+  }
+
+  function canvasPoint(clientX, clientY){
+    const contentRect = canvasContent.getBoundingClientRect();
+    return {
+      x: (clientX - contentRect.left) / canvasZoom,
+      y: (clientY - contentRect.top) / canvasZoom
+    };
+  }
+
+  function clampZoom(value){
+    return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+  }
+
+  function applyCanvasZoom(){
+    canvasContent.style.transform = `scale(${canvasZoom})`;
+    zoomLabel.textContent = Math.round(canvasZoom * 100) + '%';
+    resizeSvgLayer();
+    updateConnections();
+  }
+
+  function setCanvasZoom(nextZoom){
+    canvasZoom = clampZoom(nextZoom);
+    applyCanvasZoom();
   }
 
   function nodeElement(nodeId){
@@ -208,10 +241,6 @@
       endCtrlX: x2 - offset,
       endCtrlY: y2
     };
-  }
-  function canvasPoint(clientX, clientY){
-    const rect = canvas.getBoundingClientRect();
-    return { x: clientX - rect.left + canvas.scrollLeft, y: clientY - rect.top + canvas.scrollTop };
   }
 
   function normalizeNodePorts(node){
@@ -245,12 +274,146 @@
     return span;
   }
 
-  function selectNodeVisual(node){
+  function getSelectedNodes(){
+    return nodes.filter(n => selectedNodeIds.has(n.id));
+  }
+
+  function updateSelectionVisual(){
     document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
-    if (node){
-      const el = nodeElement(node.id);
+    selectedNodeIds.forEach(id => {
+      const el = nodeElement(id);
       if (el) el.classList.add('selected');
+    });
+  }
+
+  function setSelection(ids){
+    selectedNodeIds = new Set(ids);
+    updateSelectionVisual();
+    updatePropsForSelection();
+  }
+
+  function selectSingleNode(node){
+    setSelection([node.id]);
+  }
+
+  function selectAllNodes(){
+    if (!nodes.length) return;
+    setSelection(nodes.map(n => n.id));
+  }
+
+  function clearSelection(){
+    setSelection([]);
+  }
+
+  function updatePropsForSelection(){
+    const selected = getSelectedNodes();
+    if (selected.length === 1){
+      showProps(selected[0]);
+      return;
     }
+    propsEl.innerHTML = '';
+    if (selected.length > 1){
+      propsEmpty.style.display = 'none';
+      propsEl.style.display = 'block';
+      const msg = document.createElement('div');
+      msg.className = 'propsMulti';
+      msg.textContent = `${selected.length} blocks selected. Use ⌘/Ctrl+A to select all, copy, cut, paste, or delete.`;
+      propsEl.appendChild(msg);
+      return;
+    }
+    propsEl.style.display = 'none';
+    propsEmpty.style.display = 'block';
+  }
+
+  function newNodeId(){
+    return 'n' + Date.now() + Math.floor(Math.random() * 999);
+  }
+
+  function copySelection(){
+    const selected = getSelectedNodes();
+    if (!selected.length) return false;
+    const idSet = new Set(selected.map(n => n.id));
+    clipboard = {
+      nodes: selected.map(n => {
+        const copy = JSON.parse(JSON.stringify(n));
+        delete copy.id;
+        return copy;
+      }),
+      connections: connections
+        .filter(c => idSet.has(c.from) && idSet.has(c.to))
+        .map(c => ({
+          fromIdx: selected.findIndex(n => n.id === c.from),
+          fromIndex: c.fromIndex,
+          toIdx: selected.findIndex(n => n.id === c.to),
+          toIndex: c.toIndex
+        }))
+    };
+    return true;
+  }
+
+  function pasteClipboard(){
+    if (!clipboard || !clipboard.nodes.length) return;
+    const pt = canvasPoint(lastMousePos.x, lastMousePos.y);
+    const anchorX = pt.x - 60;
+    const anchorY = pt.y - 20;
+    const minX = Math.min(...clipboard.nodes.map(n => n.x));
+    const minY = Math.min(...clipboard.nodes.map(n => n.y));
+    const newIds = [];
+
+    clipboard.nodes.forEach(nodeData => {
+      const newId = newNodeId();
+      newIds.push(newId);
+      const newNode = JSON.parse(JSON.stringify(nodeData));
+      newNode.id = newId;
+      newNode.x = anchorX + (nodeData.x - minX);
+      newNode.y = anchorY + (nodeData.y - minY);
+      newNode.saved = false;
+      nodes.push(newNode);
+      normalizeNodePorts(newNode);
+      renderNode(newNode);
+    });
+
+    clipboard.connections.forEach(c => {
+      connections.push({
+        from: newIds[c.fromIdx],
+        fromIndex: c.fromIndex,
+        to: newIds[c.toIdx],
+        toIndex: c.toIndex
+      });
+    });
+
+    setSelection(newIds);
+    updateConnections();
+    updateExportButtonState();
+  }
+
+  function cutSelection(){
+    if (!copySelection()) return;
+    deleteSelectedNodes();
+  }
+
+  function deleteSelectedNodes(){
+    const ids = Array.from(selectedNodeIds);
+    if (!ids.length) return;
+    ids.forEach(id => {
+      nodes = nodes.filter(n => n.id !== id);
+      connections = connections.filter(c => c.from !== id && c.to !== id);
+      const el = nodeElement(id);
+      if (el) el.remove();
+    });
+    clearSelection();
+    resizeSvgLayer();
+    updateConnections();
+    updateExportButtonState();
+  }
+
+  function isEditingText(){
+    const active = document.activeElement;
+    return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+  }
+
+  function isCanvasShortcutContext(){
+    return document.activeElement === canvas || canvas.contains(document.activeElement);
   }
 
   function renderNode(node){
@@ -333,38 +496,49 @@
     el.appendChild(ports);
 
     header.addEventListener('pointerdown', (ev) => {
-      selectedNode = node;
-      selectNodeVisual(node);
-      showProps(node);
+      canvas.focus();
+      if (!selectedNodeIds.has(node.id)){
+        selectSingleNode(node);
+      }
       dragging = node;
+      didDrag = false;
+      dragOffsets = new Map();
       const pt = canvasPoint(ev.clientX, ev.clientY);
-      dragOffset.x = pt.x - node.x;
-      dragOffset.y = pt.y - node.y;
+      getSelectedNodes().forEach(n => {
+        dragOffsets.set(n.id, { x: pt.x - n.x, y: pt.y - n.y });
+      });
       header.setPointerCapture(ev.pointerId);
     });
-    header.addEventListener('pointerup', () => { dragging = null; });
+    header.addEventListener('pointerup', () => { dragging = null; dragOffsets = new Map(); });
 
     el.addEventListener('click', (ev) => {
       ev.stopPropagation();
-      selectedNode = node;
-      selectNodeVisual(node);
-      showProps(node);
+      if (!didDrag) selectSingleNode(node);
     });
 
-    canvas.appendChild(el);
+    canvasContent.appendChild(el);
     resizeSvgLayer();
     updateConnections();
   }
 
   // global pointermove to handle dragging
-  document.addEventListener('pointermove', (ev)=>{
-    if (dragging){
-      const pt = canvasPoint(ev.clientX, ev.clientY);
-      dragging.x = pt.x - dragOffset.x;
-      dragging.y = pt.y - dragOffset.y;
-      const elm = document.querySelector(`.node[data-id='${dragging.id}']`);
-      if (elm){ elm.style.left = dragging.x + 'px'; elm.style.top = dragging.y + 'px'; resizeSvgLayer(); updateConnections(); }
-    }
+  document.addEventListener('pointermove', (ev) => {
+    if (!dragging) return;
+    didDrag = true;
+    const pt = canvasPoint(ev.clientX, ev.clientY);
+    getSelectedNodes().forEach(n => {
+      const offset = dragOffsets.get(n.id);
+      if (!offset) return;
+      n.x = pt.x - offset.x;
+      n.y = pt.y - offset.y;
+      const elm = nodeElement(n.id);
+      if (elm){
+        elm.style.left = n.x + 'px';
+        elm.style.top = n.y + 'px';
+      }
+    });
+    resizeSvgLayer();
+    updateConnections();
   });
 
   function findInputHandleAt(clientX, clientY){
@@ -602,7 +776,7 @@
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'secondary';
     deleteBtn.innerText = 'Delete';
-    deleteBtn.onclick = () => deleteNode(node.id);
+    deleteBtn.onclick = () => deleteSelectedNodes();
 
     actions.appendChild(saveBtn);
     actions.appendChild(deleteBtn);
@@ -616,26 +790,24 @@
   }
 
   function deleteNode(id){
-    nodes = nodes.filter(n => n.id !== id);
-    connections = connections.filter(c => c.from !== id && c.to !== id);
-    const el = nodeElement(id);
-    if (el) el.remove();
-    propsEl.innerHTML = '';
-    propsEl.style.display = 'none';
-    propsEmpty.style.display = 'block';
-    selectedNode = null;
-    selectNodeVisual(null);
-    resizeSvgLayer();
-    updateConnections();
-    updateExportButtonState();
+    setSelection([id]);
+    deleteSelectedNodes();
   }
 
+  canvas.addEventListener('mousedown', () => canvas.focus());
+
   canvas.addEventListener('click', () => {
-    selectedNode = null;
-    selectNodeVisual(null);
-    propsEl.style.display = 'none';
-    propsEmpty.style.display = 'block';
+    clearSelection();
   });
+
+  canvas.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    changeCanvasZoom(e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP);
+  }, { passive: false });
+
+  zoomInBtn.onclick = () => changeCanvasZoom(ZOOM_STEP);
+  zoomOutBtn.onclick = () => changeCanvasZoom(-ZOOM_STEP);
 
   // accept drops from palette
   canvas.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
@@ -644,10 +816,8 @@
     try{
       const raw = e.dataTransfer.getData('application/json');
       const b = JSON.parse(raw);
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left + canvas.scrollLeft - 60;
-      const y = e.clientY - rect.top + canvas.scrollTop - 20;
-      addNode(b, x, y);
+      const pt = canvasPoint(e.clientX, e.clientY);
+      addNode(b, pt.x - 60, pt.y - 20);
     }catch(err){ console.warn('drop parse failed', err); }
   });
 
@@ -655,28 +825,55 @@
   document.addEventListener('pointermove', (e)=>{ lastMousePos = {x: e.clientX, y: e.clientY}; });
 
   // keyboard shortcuts: copy, paste, delete
-  document.addEventListener('keydown', (e)=>{
+  document.addEventListener('keydown', (e) => {
+    if (isEditingText()) return;
     const cmd = e.metaKey || e.ctrlKey;
-    // copy
-    if (cmd && e.key.toLowerCase()==='c'){
-      if (selectedNode){ clipboardNode = JSON.parse(JSON.stringify(selectedNode)); delete clipboardNode.id; e.preventDefault(); }
+    const key = e.key.toLowerCase();
+
+    if (cmd && key === 'a' && isCanvasShortcutContext()){
+      selectAllNodes();
+      e.preventDefault();
+      return;
     }
-    // paste
-    if (cmd && e.key.toLowerCase()==='v'){
-      if (clipboardNode){
-        const rect = canvas.getBoundingClientRect();
-        const x = lastMousePos.x - rect.left + canvas.scrollLeft - 60;
-        const y = lastMousePos.y - rect.top + canvas.scrollTop - 20;
-        const newId = 'n'+Date.now()+Math.floor(Math.random()*999);
-        const newNode = JSON.parse(JSON.stringify(clipboardNode));
-        newNode.id = newId; newNode.x = x; newNode.y = y; newNode.saved = false;
-        nodes.push(newNode); renderNode(newNode); updateExportButtonState(); e.preventDefault();
+
+    if (cmd && key === 'c' && isCanvasShortcutContext()){
+      if (copySelection()) e.preventDefault();
+      return;
+    }
+
+    if (cmd && key === 'x' && isCanvasShortcutContext()){
+      if (getSelectedNodes().length){
+        cutSelection();
+        e.preventDefault();
       }
+      return;
     }
-    // delete
-    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNode){
-      deleteNode(selectedNode.id);
-      selectedNode = null;
+
+    if (cmd && key === 'v' && isCanvasShortcutContext()){
+      if (clipboard && clipboard.nodes.length){
+        pasteClipboard();
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeIds.size && isCanvasShortcutContext()){
+      deleteSelectedNodes();
+      e.preventDefault();
+      return;
+    }
+
+    if (isCanvasShortcutContext()){
+      if (key === '=' || key === '+'){
+        changeCanvasZoom(ZOOM_STEP);
+        e.preventDefault();
+      } else if (key === '-'){
+        changeCanvasZoom(-ZOOM_STEP);
+        e.preventDefault();
+      } else if (key === '0'){
+        setCanvasZoom(1);
+        e.preventDefault();
+      }
     }
   });
 
@@ -718,6 +915,7 @@
   };
 
   // init
+  applyCanvasZoom();
   resizeSvgLayer();
   updateExportButtonState();
   fetchBlocks();

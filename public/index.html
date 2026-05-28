@@ -30,7 +30,14 @@
     </aside>
     <main id="canvasWrap">
       <div id="canvas" tabindex="0">
-        <svg id="connectionsSvg"></svg>
+        <div id="canvasContent">
+          <svg id="connectionsSvg"></svg>
+        </div>
+      </div>
+      <div id="zoomControls" class="zoomControls">
+        <button type="button" id="zoomOutBtn" title="Zoom out">−</button>
+        <span id="zoomLabel">100%</span>
+        <button type="button" id="zoomInBtn" title="Zoom in">+</button>
       </div>
     </main>
     <aside id="sidebar">
