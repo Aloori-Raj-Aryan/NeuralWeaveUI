@@ -13,6 +13,8 @@
   let dragging = null;
   let dragOffset = {x:0,y:0};
   let drawingConn = null; // {fromNodeId, outIndex}
+  let lastMousePos = {x:0,y:0};
+  let clipboardNode = null;
 
   function fetchBlocks(){
     return fetch('/api/blocks').then(r=>r.json()).then(r=>{ blocks = r.blocks || []; renderPalette(); });
@@ -55,13 +57,12 @@
       h.title = o;
       h.style.top = (20 + idx*18) + 'px';
       h.dataset.out = idx;
-      h.onmousedown = (ev)=> startConnection(ev, node.id, idx);
+      h.onpointerdown = (ev)=> startConnection(ev, node.id, idx);
       el.appendChild(h);
     });
     // create input handle
     const hin = document.createElement('div'); hin.className='handle input';
     hin.style.top = '20px'; hin.dataset.input = 0;
-    hin.onmouseup = (ev)=> finishConnection(ev, node.id, 0);
     el.appendChild(hin);
 
     // event for selecting and dragging
@@ -89,12 +90,28 @@
   }
 
   function startConnection(ev, fromNodeId, outIndex){
-    ev.stopPropagation(); drawingConn = {fromNodeId, outIndex};
+    ev.stopPropagation(); ev.preventDefault(); drawingConn = {fromNodeId, outIndex};
     const p = getSvgPoint(ev.clientX, ev.clientY);
     createTempLine(p.x,p.y,p.x,p.y);
 
     function move(e){ const pt = getSvgPoint(e.clientX,e.clientY); updateTempLine(pt.x,pt.y); }
-    function up(e){ removeTempLine(); document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); drawingConn=null; }
+    function up(e){
+      // try to detect an input handle under the pointer and create connection
+      const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+      if (elUnder){
+        const inputHandle = elUnder.closest('.handle.input');
+        if (inputHandle){
+          const toNodeEl = inputHandle.closest('.node');
+          if (toNodeEl){
+            const toNodeId = toNodeEl.dataset.id;
+            const toIndex = Number(inputHandle.dataset.input || 0);
+            const conn = { from: drawingConn.fromNodeId, fromIndex: drawingConn.outIndex, to: toNodeId, toIndex };
+            connections.push(conn);
+          }
+        }
+      }
+      removeTempLine(); document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); drawingConn=null; updateConnections();
+    }
     document.addEventListener('pointermove', move);
     document.addEventListener('pointerup', up);
   }
@@ -117,6 +134,7 @@
   function updateConnections(){
     // clear and redraw
     while(svg.firstChild) svg.removeChild(svg.firstChild);
+    ensureArrowMarker();
     connections.forEach((c,idx)=>{
       const fromEl = document.querySelector(`.node[data-id='${c.from}'] .handle.output[data-out='${c.fromIndex}']`);
       const toEl = document.querySelector(`.node[data-id='${c.to}'] .handle.input[data-input='${c.toIndex}']`);
@@ -126,8 +144,29 @@
       const x1 = fromRect.left + fromRect.width/2 - svgRect.left; const y1 = fromRect.top + fromRect.height/2 - svgRect.top;
       const x2 = toRect.left + toRect.width/2 - svgRect.left; const y2 = toRect.top + toRect.height/2 - svgRect.top;
       const path = document.createElementNS('http://www.w3.org/2000/svg','path'); path.setAttribute('class','connLine'); path.setAttribute('d', `M ${x1} ${y1} C ${x1+40} ${y1} ${x2-40} ${y2} ${x2} ${y2}`);
+      path.setAttribute('marker-end','url(#arrow)');
       svg.appendChild(path);
     });
+  }
+
+  function ensureArrowMarker(){
+    if (svg.querySelector('defs')) return;
+    const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+    const marker = document.createElementNS('http://www.w3.org/2000/svg','marker');
+    marker.setAttribute('id','arrow');
+    marker.setAttribute('viewBox','0 0 10 10');
+    marker.setAttribute('refX','10');
+    marker.setAttribute('refY','5');
+    marker.setAttribute('markerUnits','strokeWidth');
+    marker.setAttribute('markerWidth','8');
+    marker.setAttribute('markerHeight','6');
+    marker.setAttribute('orient','auto');
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d','M 0 0 L 10 5 L 0 10 z');
+    path.setAttribute('fill','#2b9cff');
+    marker.appendChild(path);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
   }
 
   // selection & props
@@ -164,6 +203,31 @@
 
   // canvas click to deselect
   canvas.addEventListener('click', ()=>{ selectedNode=null; propsEl.style.display='none'; propsEmpty.style.display='block'; });
+
+  // track last mouse position for paste
+  document.addEventListener('pointermove', (e)=>{ lastMousePos = {x: e.clientX, y: e.clientY}; });
+
+  // keyboard shortcuts: copy, paste, delete
+  document.addEventListener('keydown', (e)=>{
+    const cmd = e.metaKey || e.ctrlKey;
+    // copy
+    if (cmd && e.key.toLowerCase()==='c'){
+      if (selectedNode){ clipboardNode = JSON.parse(JSON.stringify(selectedNode)); delete clipboardNode.id; e.preventDefault(); }
+    }
+    // paste
+    if (cmd && e.key.toLowerCase()==='v'){
+      if (clipboardNode){
+        const rect = canvas.getBoundingClientRect();
+        const x = lastMousePos.x - rect.left - 60; const y = lastMousePos.y - rect.top - 20;
+        const newId = 'n'+Date.now()+Math.floor(Math.random()*999);
+        const newNode = JSON.parse(JSON.stringify(clipboardNode));
+        newNode.id = newId; newNode.x = x; newNode.y = y; newNode.saved = false;
+        nodes.push(newNode); renderNode(newNode); e.preventDefault();
+      }
+    }
+    // delete
+    if ((e.key==='Delete' || e.key==='Backspace') && selectedNode){ deleteNode(selectedNode.id); selectedNode=null; }
+  });
 
   // export graph
   exportBtn.onclick = ()=>{
