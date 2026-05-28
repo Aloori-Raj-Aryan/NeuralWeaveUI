@@ -19,6 +19,7 @@ Features:
 - Connect node outputs to other node inputs (many-to-many allowed)
 - Outputs show as multiple handles when block `output` is an array
 - Save/export graph to `saved_graphs/` via `POST /api/save_graph`
+- Add a new block JSON file under `blocks/` and click the Reload Blocks button in the UI to load it automatically
 
 Notes:
 - This is a minimal prototype; feel free to request additional UX/feature improvements.

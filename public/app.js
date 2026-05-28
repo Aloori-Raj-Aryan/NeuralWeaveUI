@@ -5,6 +5,7 @@
   const propsEl = document.getElementById('props');
   const propsEmpty = document.getElementById('propsEmpty');
   const exportBtn = document.getElementById('exportBtn');
+  const reloadBlocksBtn = document.getElementById('reloadBlocksBtn');
 
   let blocks = [];
   let nodes = [];
@@ -609,6 +610,9 @@
       selectedNode = null;
     }
   });
+
+  // reload palette from disk
+  reloadBlocksBtn.onclick = () => fetchBlocks();
 
   // export graph
   exportBtn.onclick = () => {
