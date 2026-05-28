@@ -1,0 +1,37 @@
+{
+    "name": "Linear",
+    "category": "Module",
+    "path": "torch.nn.Linear",
+    "init_arguments": {
+        "in_features": {
+            "required": "True",
+            "default": null
+        },
+        "out_features": {
+            "required": "True",
+            "default": null
+        },
+        "bias": {
+            "required": "False",
+            "default": true
+        },
+        "device": {
+            "required": "False",
+            "default": null
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

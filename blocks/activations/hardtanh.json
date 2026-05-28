@@ -1,0 +1,29 @@
+{
+    "name": "Hardtanh",
+    "category": "Module",
+    "path": "torch.nn.Hardtanh",
+    "init_arguments": {
+        "min_val": {
+            "required": "False",
+            "default": -1.0
+        },
+        "max_val": {
+            "required": "False",
+            "default": 1.0
+        },
+        "inplace": {
+            "required": "False",
+            "default": false
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

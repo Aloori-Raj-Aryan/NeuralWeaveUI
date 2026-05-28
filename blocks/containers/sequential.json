@@ -1,0 +1,16 @@
+{
+    "name": "Sequential",
+    "category": "Module",
+    "path": "torch.nn.Sequential",
+    "init_arguments": {},
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

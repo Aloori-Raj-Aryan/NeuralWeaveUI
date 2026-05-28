@@ -1,0 +1,25 @@
+{
+    "name": "CELU",
+    "category": "Module",
+    "path": "torch.nn.CELU",
+    "init_arguments": {
+        "alpha": {
+            "required": "False",
+            "default": 1.0
+        },
+        "inplace": {
+            "required": "False",
+            "default": false
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

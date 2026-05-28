@@ -1,0 +1,25 @@
+{
+    "name": "masked_fill",
+    "category": "Function",
+    "path": "torch.Tensor.masked_fill",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "mask": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "value": {
+            "type": "float",
+            "required": "True",
+            "default": 0.0
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "name": "div",
+    "category": "Function",
+    "path": "torch.div",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "other": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "rounding_mode": {
+            "type": "str",
+            "required": "False",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

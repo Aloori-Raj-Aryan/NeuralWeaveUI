@@ -1,0 +1,25 @@
+{
+    "name": "PReLU",
+    "category": "Module",
+    "path": "torch.nn.PReLU",
+    "init_arguments": {
+        "num_parameters": {
+            "required": "False",
+            "default": 1
+        },
+        "init": {
+            "required": "False",
+            "default": 0.25
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

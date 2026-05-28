@@ -1,0 +1,33 @@
+{
+    "name": "RMSNorm",
+    "category": "Module",
+    "path": "torch.nn.RMSNorm",
+    "init_arguments": {
+        "normalized_shape": {
+            "required": "True",
+            "default": null
+        },
+        "eps": {
+            "required": "False",
+            "default": 1e-08
+        },
+        "elementwise_affine": {
+            "required": "False",
+            "default": true
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

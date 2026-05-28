@@ -1,0 +1,20 @@
+{
+    "name": "bmm",
+    "category": "Function",
+    "path": "torch.bmm",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "mat2": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

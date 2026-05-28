@@ -1,0 +1,21 @@
+{
+    "name": "ReLU6",
+    "category": "Module",
+    "path": "torch.nn.ReLU6",
+    "init_arguments": {
+        "inplace": {
+            "required": "False",
+            "default": false
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

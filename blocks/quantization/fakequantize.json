@@ -1,0 +1,33 @@
+{
+    "name": "FakeQuantize",
+    "category": "Module",
+    "path": "torch.quantization.FakeQuantize",
+    "init_arguments": {
+        "observer": {
+            "required": "False",
+            "default": null
+        },
+        "quant_min": {
+            "required": "False",
+            "default": 0
+        },
+        "quant_max": {
+            "required": "False",
+            "default": 255
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

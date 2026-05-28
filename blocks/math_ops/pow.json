@@ -1,0 +1,20 @@
+{
+    "name": "pow",
+    "category": "Function",
+    "path": "torch.pow",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "exponent": {
+            "type": "float",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

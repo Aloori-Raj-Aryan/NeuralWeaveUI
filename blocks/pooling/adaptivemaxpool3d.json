@@ -1,0 +1,25 @@
+{
+    "name": "AdaptiveMaxPool3d",
+    "category": "Module",
+    "path": "torch.nn.AdaptiveMaxPool3d",
+    "init_arguments": {
+        "output_size": {
+            "required": "True",
+            "default": null
+        },
+        "return_indices": {
+            "required": "False",
+            "default": false
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

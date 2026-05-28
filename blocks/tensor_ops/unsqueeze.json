@@ -1,0 +1,20 @@
+{
+    "name": "unsqueeze",
+    "category": "Function",
+    "path": "torch.unsqueeze",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "dim": {
+            "type": "int",
+            "required": "True",
+            "default": 0
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

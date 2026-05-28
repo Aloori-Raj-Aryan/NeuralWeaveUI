@@ -1,0 +1,25 @@
+{
+    "name": "clamp",
+    "category": "Function",
+    "path": "torch.clamp",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "min": {
+            "type": "float",
+            "required": "False",
+            "default": null
+        },
+        "max": {
+            "type": "float",
+            "required": "False",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

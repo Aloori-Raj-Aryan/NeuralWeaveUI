@@ -1,0 +1,26 @@
+{
+    "name": "BCEWithLogitsLoss",
+    "category": "Module",
+    "path": "torch.nn.BCEWithLogitsLoss",
+    "init_arguments": {
+        "reduction": {
+            "required": "False",
+            "default": "mean"
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "target": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

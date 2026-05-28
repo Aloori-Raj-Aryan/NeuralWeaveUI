@@ -1,0 +1,16 @@
+{
+    "name": "Tanh",
+    "category": "Module",
+    "path": "torch.nn.Tanh",
+    "init_arguments": {},
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

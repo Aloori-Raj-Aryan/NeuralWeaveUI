@@ -1,0 +1,15 @@
+{
+    "name": "sqrt",
+    "category": "Function",
+    "path": "torch.sqrt",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

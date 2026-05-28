@@ -1,0 +1,20 @@
+{
+    "name": "einsum",
+    "category": "Function",
+    "path": "torch.einsum",
+    "forward_arguments": {
+        "equation": {
+            "type": "str",
+            "required": "True",
+            "default": null
+        },
+        "operands": {
+            "type": "Tensor[]",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

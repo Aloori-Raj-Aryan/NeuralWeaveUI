@@ -1,0 +1,20 @@
+{
+    "name": "argmin",
+    "category": "Function",
+    "path": "torch.argmin",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "dim": {
+            "type": "int",
+            "required": "False",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

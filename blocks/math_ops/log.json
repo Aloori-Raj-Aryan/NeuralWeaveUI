@@ -1,0 +1,15 @@
+{
+    "name": "log",
+    "category": "Function",
+    "path": "torch.log",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

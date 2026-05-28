@@ -1,0 +1,20 @@
+{
+    "name": "mul",
+    "category": "Function",
+    "path": "torch.mul",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "other": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

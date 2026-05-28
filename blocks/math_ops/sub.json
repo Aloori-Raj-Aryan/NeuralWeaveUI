@@ -1,0 +1,25 @@
+{
+    "name": "sub",
+    "category": "Function",
+    "path": "torch.sub",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "other": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "alpha": {
+            "type": "float",
+            "required": "False",
+            "default": 1.0
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

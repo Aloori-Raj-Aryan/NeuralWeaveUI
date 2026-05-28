@@ -1,0 +1,16 @@
+{
+    "name": "Identity",
+    "category": "Module",
+    "path": "torch.nn.Identity",
+    "init_arguments": {},
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

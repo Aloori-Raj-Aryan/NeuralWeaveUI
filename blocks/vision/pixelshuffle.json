@@ -1,0 +1,21 @@
+{
+    "name": "PixelShuffle",
+    "category": "Module",
+    "path": "torch.nn.PixelShuffle",
+    "init_arguments": {
+        "upscale_factor": {
+            "required": "True",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

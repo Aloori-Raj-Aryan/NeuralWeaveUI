@@ -1,0 +1,21 @@
+{
+    "name": "ChannelShuffle",
+    "category": "Module",
+    "path": "torch.nn.ChannelShuffle",
+    "init_arguments": {
+        "groups": {
+            "required": "True",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

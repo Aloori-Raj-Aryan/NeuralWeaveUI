@@ -1,0 +1,16 @@
+{
+    "name": "Hardsigmoid",
+    "category": "Module",
+    "path": "torch.nn.Hardsigmoid",
+    "init_arguments": {},
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

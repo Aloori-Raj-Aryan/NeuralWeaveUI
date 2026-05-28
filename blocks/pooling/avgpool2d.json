@@ -1,0 +1,37 @@
+{
+    "name": "AvgPool2d",
+    "category": "Module",
+    "path": "torch.nn.AvgPool2d",
+    "init_arguments": {
+        "kernel_size": {
+            "required": "True",
+            "default": null
+        },
+        "stride": {
+            "required": "False",
+            "default": null
+        },
+        "padding": {
+            "required": "False",
+            "default": 0
+        },
+        "ceil_mode": {
+            "required": "False",
+            "default": false
+        },
+        "count_include_pad": {
+            "required": "False",
+            "default": true
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "name": "Dropout3d",
+    "category": "Module",
+    "path": "torch.nn.Dropout3d",
+    "init_arguments": {
+        "p": {
+            "required": "False",
+            "default": 0.5
+        },
+        "inplace": {
+            "required": "False",
+            "default": false
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

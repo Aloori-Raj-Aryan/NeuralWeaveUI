@@ -1,0 +1,21 @@
+{
+    "name": "AdaptiveAvgPool1d",
+    "category": "Module",
+    "path": "torch.nn.AdaptiveAvgPool1d",
+    "init_arguments": {
+        "output_size": {
+            "required": "True",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

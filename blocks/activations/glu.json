@@ -1,0 +1,21 @@
+{
+    "name": "GLU",
+    "category": "Module",
+    "path": "torch.nn.GLU",
+    "init_arguments": {
+        "dim": {
+            "required": "False",
+            "default": -1
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

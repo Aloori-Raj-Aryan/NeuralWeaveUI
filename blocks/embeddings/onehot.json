@@ -1,0 +1,25 @@
+{
+    "name": "OneHot",
+    "category": "Module",
+    "path": "torch.nn.functional.one_hot",
+    "init_arguments": {
+        "num_classes": {
+            "required": "True",
+            "default": null
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

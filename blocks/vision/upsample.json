@@ -1,0 +1,33 @@
+{
+    "name": "Upsample",
+    "category": "Module",
+    "path": "torch.nn.Upsample",
+    "init_arguments": {
+        "size": {
+            "required": "False",
+            "default": null
+        },
+        "scale_factor": {
+            "required": "False",
+            "default": null
+        },
+        "mode": {
+            "required": "False",
+            "default": "nearest"
+        },
+        "align_corners": {
+            "required": "False",
+            "default": null
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

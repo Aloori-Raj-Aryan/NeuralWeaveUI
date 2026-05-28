@@ -1,0 +1,29 @@
+{
+    "name": "Threshold",
+    "category": "Module",
+    "path": "torch.nn.Threshold",
+    "init_arguments": {
+        "threshold": {
+            "required": "True",
+            "default": 0.0
+        },
+        "value": {
+            "required": "True",
+            "default": 0.0
+        },
+        "inplace": {
+            "required": "False",
+            "default": false
+        }
+    },
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "name": "abs",
+    "category": "Function",
+    "path": "torch.abs",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}

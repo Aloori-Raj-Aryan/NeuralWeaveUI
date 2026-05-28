@@ -1,0 +1,35 @@
+{
+    "name": "interpolate",
+    "category": "Function",
+    "path": "torch.nn.functional.interpolate",
+    "forward_arguments": {
+        "input": {
+            "type": "Tensor",
+            "required": "True",
+            "default": null
+        },
+        "size": {
+            "type": "Tuple[int]",
+            "required": "False",
+            "default": null
+        },
+        "scale_factor": {
+            "type": "Tuple[float]",
+            "required": "False",
+            "default": null
+        },
+        "mode": {
+            "type": "str",
+            "required": "False",
+            "default": "nearest"
+        },
+        "align_corners": {
+            "type": "bool",
+            "required": "False",
+            "default": null
+        }
+    },
+    "output": [
+        "output"
+    ]
+}
