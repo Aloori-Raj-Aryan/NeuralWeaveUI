@@ -6,6 +6,9 @@
   const propsEmpty = document.getElementById('propsEmpty');
   const exportBtn = document.getElementById('exportBtn');
   const reloadBlocksBtn = document.getElementById('reloadBlocksBtn');
+  const blockSearchInput = document.getElementById('blockSearch');
+  const searchDropdown = document.getElementById('searchDropdown');
+  const searchResults = document.getElementById('searchResults');
 
   let blocks = [];
   let nodes = [];
@@ -16,6 +19,72 @@
   let drawingConn = null; // {fromNodeId, outIndex, startX, startY}
   let lastMousePos = {x:0,y:0};
   let clipboardNode = null;
+
+  function closeSearchDropdown(){
+    searchDropdown.classList.remove('open');
+    blockSearchInput.value = '';
+    searchResults.innerHTML = '';
+  }
+
+  function scrollToPaletteBlock(blockName){
+    const blockItems = document.querySelectorAll('.blockItem');
+    let targetEl = null;
+    for (const item of blockItems){
+      const nameEl = item.querySelector('.blockItemName');
+      if (nameEl && nameEl.textContent === blockName){
+        targetEl = item;
+        break;
+      }
+    }
+    if (targetEl){
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  function selectBlockFromSearch(blockDef){
+    addNode(blockDef);
+    closeSearchDropdown();
+  }
+
+  function searchBlocks(query){
+    if (!query.trim()){
+      searchDropdown.classList.remove('open');
+      return;
+    }
+    const lower = query.toLowerCase();
+    const results = blocks.filter(b =>
+      b.name.toLowerCase().includes(lower) ||
+      (b.path || '').toLowerCase().includes(lower) ||
+      getBlockCategory(b).toLowerCase().includes(lower)
+    );
+    
+    searchResults.innerHTML = '';
+    if (results.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'searchResultEmpty';
+      empty.textContent = 'No blocks found';
+      searchResults.appendChild(empty);
+    } else {
+      results.forEach(b => {
+        const item = document.createElement('div');
+        item.className = 'searchResultItem';
+        item.innerHTML = `
+          <div class="searchResultName">${b.name}</div>
+          <div class="searchResultPath">${b.path || ''}</div>
+          <div class="searchResultCategory">${getBlockCategory(b)}</div>
+        `;
+        item.onclick = () => selectBlockFromSearch(b);
+        searchResults.appendChild(item);
+      });
+    }
+    searchDropdown.classList.add('open');
+  }
+
+  function closeSearchOnClickOutside(e){
+    if (!blockSearchInput.contains(e.target) && !searchDropdown.contains(e.target)){
+      closeSearchDropdown();
+    }
+  }
 
   function fetchBlocks(){
     return fetch('/api/blocks').then(r=>r.json()).then(r=>{ blocks = r.blocks || []; renderPalette(); });
@@ -613,6 +682,19 @@
 
   // reload palette from disk
   reloadBlocksBtn.onclick = () => fetchBlocks();
+
+  // search functionality
+  blockSearchInput.addEventListener('input', (e) => {
+    searchBlocks(e.target.value);
+  });
+
+  blockSearchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape'){
+      closeSearchDropdown();
+    }
+  });
+
+  document.addEventListener('click', closeSearchOnClickOutside);
 
   // export graph
   exportBtn.onclick = () => {
