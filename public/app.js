@@ -3,6 +3,7 @@
   const canvas = document.getElementById('canvas');
   const canvasContent = document.getElementById('canvasContent');
   const canvasScrollSizer = document.getElementById('canvasScrollSizer');
+  const selectionMarquee = document.getElementById('selectionMarquee');
   const svg = document.getElementById('connectionsSvg');
   const propsEl = document.getElementById('props');
   const propsEmpty = document.getElementById('propsEmpty');
@@ -287,6 +288,8 @@
   }
 
   let touchGesture = null;
+  let marquee = null;
+  const MARQUEE_MIN_PX = 4;
 
   function endTouchGesture(){
     touchGesture = null;
@@ -402,7 +405,7 @@
       propsEl.style.display = 'block';
       const msg = document.createElement('div');
       msg.className = 'propsMulti';
-      msg.textContent = `${selected.length} blocks selected. Shift+click to add/remove, ⌘/Ctrl+A for all.`;
+      msg.textContent = `${selected.length} blocks selected. Drag to box-select, Shift+click to add/remove.`;
       propsEl.appendChild(msg);
       return;
     }
@@ -490,6 +493,68 @@
     resizeSvgLayer();
     updateConnections();
     updateExportButtonState();
+  }
+
+  function getNodeBounds(node){
+    const el = nodeElement(node.id);
+    return {
+      x: node.x,
+      y: node.y,
+      w: el ? el.offsetWidth : NODE_MIN_WIDTH,
+      h: el ? el.offsetHeight : 140
+    };
+  }
+
+  function rectsIntersect(a, b){
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function nodesInMarquee(x1, y1, x2, y2){
+    const marqueeRect = {
+      x: Math.min(x1, x2),
+      y: Math.min(y1, y2),
+      w: Math.abs(x2 - x1),
+      h: Math.abs(y2 - y1)
+    };
+    return nodes.filter(n => rectsIntersect(marqueeRect, getNodeBounds(n)));
+  }
+
+  function updateMarqueeVisual(x1, y1, x2, y2){
+    selectionMarquee.style.display = 'block';
+    selectionMarquee.hidden = false;
+    selectionMarquee.style.left = Math.min(x1, x2) + 'px';
+    selectionMarquee.style.top = Math.min(y1, y2) + 'px';
+    selectionMarquee.style.width = Math.abs(x2 - x1) + 'px';
+    selectionMarquee.style.height = Math.abs(y2 - y1) + 'px';
+  }
+
+  function hideMarquee(){
+    selectionMarquee.style.display = 'none';
+    selectionMarquee.hidden = true;
+  }
+
+  function finishMarquee(clientX, clientY){
+    if (!marquee) return;
+    const pt = canvasPoint(clientX, clientY);
+    const dx = Math.abs(pt.x - marquee.startX);
+    const dy = Math.abs(pt.y - marquee.startY);
+
+    if (dx >= MARQUEE_MIN_PX || dy >= MARQUEE_MIN_PX){
+      const hits = nodesInMarquee(marquee.startX, marquee.startY, pt.x, pt.y);
+      const ids = hits.map(n => n.id);
+      if (marquee.additive){
+        const next = new Set(selectedNodeIds);
+        ids.forEach(id => next.add(id));
+        setSelection(Array.from(next));
+      } else {
+        setSelection(ids);
+      }
+    } else if (!marquee.additive){
+      clearSelection();
+    }
+
+    hideMarquee();
+    marquee = null;
   }
 
   function isEditingText(){
@@ -581,6 +646,7 @@
     el.appendChild(ports);
 
     header.addEventListener('pointerdown', (ev) => {
+      ev.stopPropagation();
       canvas.focus();
       if (!ev.shiftKey && !selectedNodeIds.has(node.id)){
         selectSingleNode(node);
@@ -883,10 +949,38 @@
     deleteSelectedNodes();
   }
 
-  canvas.addEventListener('mousedown', () => canvas.focus());
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest('.node')) return;
 
-  canvas.addEventListener('click', () => {
-    clearSelection();
+    canvas.focus();
+    const pt = canvasPoint(e.clientX, e.clientY);
+    marquee = {
+      startX: pt.x,
+      startY: pt.y,
+      additive: e.shiftKey,
+      pointerId: e.pointerId
+    };
+    updateMarqueeVisual(pt.x, pt.y, pt.x, pt.y);
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!marquee || e.pointerId !== marquee.pointerId) return;
+    const pt = canvasPoint(e.clientX, e.clientY);
+    updateMarqueeVisual(marquee.startX, marquee.startY, pt.x, pt.y);
+  });
+
+  canvas.addEventListener('pointerup', (e) => {
+    if (!marquee || e.pointerId !== marquee.pointerId) return;
+    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+    finishMarquee(e.clientX, e.clientY);
+  });
+
+  canvas.addEventListener('pointercancel', (e) => {
+    if (!marquee || e.pointerId !== marquee.pointerId) return;
+    hideMarquee();
+    marquee = null;
   });
 
   canvas.addEventListener('wheel', (e) => {
