@@ -10,9 +10,9 @@
   let nodes = [];
   let connections = [];
   let selectedNode = null;
-  let dragging = null;
+  let dragging = null; // node being dragged
   let dragOffset = {x:0,y:0};
-  let drawingConn = null; // {fromNodeId, outIndex}
+  let drawingConn = null; // {fromNodeId, outIndex, startX, startY}
   let lastMousePos = {x:0,y:0};
   let clipboardNode = null;
 
@@ -26,6 +26,12 @@
       const el = document.createElement('div'); el.className='blockItem';
       el.innerHTML = `<strong>${b.name}</strong><div style="font-size:12px;color:#666">${b.path||''}</div>`;
       el.onclick = ()=> addNode(b);
+      // enable drag from palette
+      el.draggable = true;
+      el.addEventListener('dragstart', (ev)=>{
+        ev.dataTransfer.setData('application/json', JSON.stringify(b));
+        ev.dataTransfer.effectAllowed = 'copy';
+      });
       blocksListEl.appendChild(el);
     });
   }
@@ -57,7 +63,7 @@
       h.title = o;
       h.style.top = (20 + idx*18) + 'px';
       h.dataset.out = idx;
-      h.onpointerdown = (ev)=> startConnection(ev, node.id, idx);
+      h.addEventListener('pointerdown', (ev)=> startConnection(ev, node.id, idx));
       el.appendChild(h);
     });
     // create input handle
@@ -65,34 +71,37 @@
     hin.style.top = '20px'; hin.dataset.input = 0;
     el.appendChild(hin);
 
-    // event for selecting and dragging
+    // event for selecting and dragging (set dragging state; global listener handles movement)
     const header = el.querySelector('.nodeHeader');
-    header.onpointerdown = (ev)=>{
-      selectedNode = node; showProps(node); dragging = node; dragOffset.x = ev.clientX - node.x; dragOffset.y = ev.clientY - node.y; header.setPointerCapture(ev.pointerId);
-    };
-    header.onpointerup = (ev)=>{
-      if (dragging) dragging = null;
-    };
-
-    document.addEventListener('pointermove', (ev)=>{
-      if (dragging && dragging.id===node.id){
-        dragging.x = ev.clientX - dragOffset.x;
-        dragging.y = ev.clientY - dragOffset.y;
-        const elm = document.querySelector(`.node[data-id='${node.id}']`);
-        if (elm){ elm.style.left = dragging.x + 'px'; elm.style.top = dragging.y + 'px'; updateConnections(); }
-      }
+    header.addEventListener('pointerdown', (ev)=>{
+      selectedNode = node; showProps(node); dragging = node; dragOffset.x = ev.clientX - node.x; dragOffset.y = ev.clientY - node.y; ev.target.setPointerCapture(ev.pointerId);
     });
+    header.addEventListener('pointerup', ()=>{ dragging = null; });
 
-    el.onclick = (ev)=>{ ev.stopPropagation(); selectedNode = node; showProps(node); }
+    el.addEventListener('click', (ev)=>{ ev.stopPropagation(); selectedNode = node; showProps(node); })
 
     canvas.appendChild(el);
     updateConnections();
   }
 
+  // global pointermove to handle dragging
+  document.addEventListener('pointermove', (ev)=>{
+    if (dragging){
+      dragging.x = ev.clientX - dragOffset.x;
+      dragging.y = ev.clientY - dragOffset.y;
+      const elm = document.querySelector(`.node[data-id='${dragging.id}']`);
+      if (elm){ elm.style.left = dragging.x + 'px'; elm.style.top = dragging.y + 'px'; updateConnections(); }
+    }
+  });
+
   function startConnection(ev, fromNodeId, outIndex){
-    ev.stopPropagation(); ev.preventDefault(); drawingConn = {fromNodeId, outIndex};
-    const p = getSvgPoint(ev.clientX, ev.clientY);
-    createTempLine(p.x,p.y,p.x,p.y);
+    ev.stopPropagation(); ev.preventDefault();
+    const fromEl = document.querySelector(`.node[data-id='${fromNodeId}'] .handle.output[data-out='${outIndex}']`);
+    const svgRect = svg.getBoundingClientRect();
+    let start = getSvgPoint(ev.clientX, ev.clientY);
+    if (fromEl){ const r = fromEl.getBoundingClientRect(); start = { x: r.left + r.width/2 - svgRect.left, y: r.top + r.height/2 - svgRect.top }; }
+    drawingConn = {fromNodeId, outIndex, startX: start.x, startY: start.y};
+    createTempLine(start.x,start.y,start.x,start.y);
 
     function move(e){ const pt = getSvgPoint(e.clientX,e.clientY); updateTempLine(pt.x,pt.y); }
     function up(e){
@@ -125,8 +134,8 @@
 
   // temp line helpers
   let tempLine = null;
-  function createTempLine(x1,y1,x2,y2){ tempLine = document.createElementNS('http://www.w3.org/2000/svg','path'); tempLine.setAttribute('class','connLine'); svg.appendChild(tempLine); tempLine.setAttribute('d', `M ${x1} ${y1} L ${x2} ${y2}`); }
-  function updateTempLine(x2,y2){ if (!tempLine) return; const from = tempLine.getAttribute('d').split('L')[0].replace('M','').trim(); const [x1,y1] = from.split(' ').map(Number); tempLine.setAttribute('d', `M ${x1} ${y1} L ${x2} ${y2}`); }
+  function createTempLine(x1,y1,x2,y2){ tempLine = document.createElementNS('http://www.w3.org/2000/svg','path'); tempLine.setAttribute('class','connLine'); tempLine.setAttribute('marker-end','url(#arrow)'); svg.appendChild(tempLine); tempLine.setAttribute('d', `M ${x1} ${y1} L ${x2} ${y2}`); }
+  function updateTempLine(x2,y2){ if (!tempLine) return; const d = tempLine.getAttribute('d'); const from = d.split('L')[0].replace('M','').trim(); const [x1,y1] = from.split(' ').map(Number); tempLine.setAttribute('d', `M ${x1} ${y1} C ${x1+40} ${y1} ${x2-40} ${y2} ${x2} ${y2}`); }
   function removeTempLine(){ if (tempLine){ tempLine.remove(); tempLine=null; } }
 
   function getSvgPoint(clientX, clientY){ const r = svg.getBoundingClientRect(); return { x: clientX - r.left, y: clientY - r.top }; }
@@ -203,6 +212,19 @@
 
   // canvas click to deselect
   canvas.addEventListener('click', ()=>{ selectedNode=null; propsEl.style.display='none'; propsEmpty.style.display='block'; });
+
+  // accept drops from palette
+  canvas.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  canvas.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    try{
+      const raw = e.dataTransfer.getData('application/json');
+      const b = JSON.parse(raw);
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left - 60; const y = e.clientY - rect.top - 20;
+      addNode(b, x, y);
+    }catch(err){ console.warn('drop parse failed', err); }
+  });
 
   // track last mouse position for paste
   document.addEventListener('pointermove', (e)=>{ lastMousePos = {x: e.clientX, y: e.clientY}; });
