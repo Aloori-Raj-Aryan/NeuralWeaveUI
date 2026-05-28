@@ -3,16 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NeuralWeaveUI - Node Editor</title>
+  <title>NeuralWeaveUI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div id="app">
     <aside id="palette">
-      <h3>Blocks</h3>
+      <div class="panelHeader">
+        <h2>Blocks</h2>
+        <p class="panelHint">Expand a category to browse</p>
+      </div>
       <div id="blocksList"></div>
-      <hr />
-      <button id="exportBtn">Save Graph</button>
+      <div class="paletteFooter">
+        <button id="exportBtn" class="primary">Save Graph</button>
+      </div>
     </aside>
     <main id="canvasWrap">
       <div id="canvas" tabindex="0">
@@ -20,8 +27,13 @@
       </div>
     </main>
     <aside id="sidebar">
-      <h3>Properties</h3>
-      <div id="propsEmpty">Select a node to edit its init arguments</div>
+      <div class="panelHeader">
+        <h2>Properties</h2>
+      </div>
+      <div id="propsEmpty" class="emptyState">
+        <div class="emptyIcon">⚙</div>
+        <p>Select a node to edit its init arguments</p>
+      </div>
       <div id="props"></div>
     </aside>
   </div>

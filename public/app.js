@@ -20,48 +20,110 @@
     return fetch('/api/blocks').then(r=>r.json()).then(r=>{ blocks = r.blocks || []; renderPalette(); });
   }
 
+  function formatCategoryName(folder){
+    return folder.replace(/_/g, ' ');
+  }
+
+  function getBlockCategory(block){
+    const file = block.__file || '';
+    const parts = file.split('/');
+    return parts.length > 1 ? parts[0] : 'other';
+  }
+
+  function groupBlocksByFolder(blockList){
+    const groups = {};
+    blockList.forEach(b => {
+      const cat = getBlockCategory(b);
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(b);
+    });
+    Object.keys(groups).forEach(k => {
+      groups[k].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    return Object.keys(groups).sort().reduce((acc, k) => { acc[k] = groups[k]; return acc; }, {});
+  }
+
+  function attachBlockItem(el, b){
+    el.onclick = () => addNode(b);
+    el.draggable = true;
+    el.addEventListener('dragstart', (ev) => {
+      ev.dataTransfer.setData('application/json', JSON.stringify(b));
+      ev.dataTransfer.effectAllowed = 'copy';
+    });
+  }
+
   function renderPalette(){
     blocksListEl.innerHTML = '';
-    blocks.forEach(b=>{
-      const el = document.createElement('div'); el.className='blockItem';
-      el.innerHTML = `<strong>${b.name}</strong><div style="font-size:12px;color:#666">${b.path||''}</div>`;
-      el.onclick = ()=> addNode(b);
-      // enable drag from palette
-      el.draggable = true;
-      el.addEventListener('dragstart', (ev)=>{
-        ev.dataTransfer.setData('application/json', JSON.stringify(b));
-        ev.dataTransfer.effectAllowed = 'copy';
+    const groups = groupBlocksByFolder(blocks);
+    Object.keys(groups).forEach(category => {
+      const details = document.createElement('details');
+      details.className = 'categoryGroup';
+
+      const summary = document.createElement('summary');
+      summary.textContent = formatCategoryName(category);
+      details.appendChild(summary);
+
+      const list = document.createElement('div');
+      list.className = 'categoryBlocks';
+
+      groups[category].forEach(b => {
+        const el = document.createElement('div');
+        el.className = 'blockItem';
+        const kind = (b.category || 'block').toLowerCase();
+        el.innerHTML = `
+          <div class="blockItemName">${b.name}</div>
+          <div class="blockItemPath">${b.path || ''}</div>
+          <span class="blockItemKind ${kind}">${b.category || 'Block'}</span>
+        `;
+        attachBlockItem(el, b);
+        list.appendChild(el);
       });
-      blocksListEl.appendChild(el);
+
+      details.appendChild(list);
+      blocksListEl.appendChild(details);
     });
   }
 
   function getBlockInputs(blockDef){
     const fwd = blockDef.forward_arguments || {};
-    const tensorInputs = Object.keys(fwd).filter(k => fwd[k].type === 'Tensor').map(name => ({ name }));
-    return tensorInputs.length ? tensorInputs : [{ name: 'input' }];
+    const tensorInputs = Object.keys(fwd)
+      .filter(k => fwd[k].type === 'Tensor')
+      .map(name => ({
+        name,
+        required: fwd[name].required === 'True'
+      }));
+    return tensorInputs.length ? tensorInputs : [{ name: 'input', required: true }];
   }
 
   function getBlockOutputs(blockDef){
-    return Array.isArray(blockDef.output) ? blockDef.output : (blockDef.output ? [blockDef.output] : ['output']);
+    const outs = Array.isArray(blockDef.output) ? blockDef.output : (blockDef.output ? [blockDef.output] : ['output']);
+    return outs.map(name => ({ name }));
   }
 
-  const NODE_WIDTH = 220;
-  const HANDLE_SIZE = 12;
+  const NODE_MIN_WIDTH = 240;
 
   function handleCenter(node, handleEl){
-    const idx = Number(handleEl.classList.contains('output') ? handleEl.dataset.out : handleEl.dataset.input) || 0;
-    const y = node.y + 20 + idx * 18 + HANDLE_SIZE / 2;
-    const x = handleEl.classList.contains('output') ? node.x + NODE_WIDTH : node.x;
-    return { x, y };
+    const canvasRect = canvas.getBoundingClientRect();
+    const r = handleEl.getBoundingClientRect();
+    return {
+      x: r.left + r.width / 2 - canvasRect.left + canvas.scrollLeft,
+      y: r.top + r.height / 2 - canvasRect.top + canvas.scrollTop
+    };
+  }
+
+  function nodeElement(nodeId){
+    return document.querySelector(`.node[data-id='${nodeId}']`);
   }
 
   function resizeSvgLayer(){
     let maxX = canvas.clientWidth || 800;
     let maxY = canvas.clientHeight || 600;
     nodes.forEach(n => {
-      maxX = Math.max(maxX, n.x + NODE_WIDTH + 80);
-      maxY = Math.max(maxY, n.y + 140);
+      const el = nodeElement(n.id);
+      const w = el ? el.offsetWidth : NODE_MIN_WIDTH;
+      const h = el ? el.offsetHeight : 140;
+      maxX = Math.max(maxX, n.x + w + 80);
+      maxY = Math.max(maxY, n.y + h + 80);
     });
     svg.setAttribute('width', maxX);
     svg.setAttribute('height', maxY);
@@ -82,6 +144,15 @@
     return { x: clientX - rect.left + canvas.scrollLeft, y: clientY - rect.top + canvas.scrollTop };
   }
 
+  function normalizeNodePorts(node){
+    node.inputs = (node.inputs || []).map(i =>
+      typeof i === 'string' ? { name: i, required: true } : i
+    );
+    node.outputs = (node.outputs || []).map(o =>
+      typeof o === 'string' ? { name: o } : o
+    );
+  }
+
   function addNode(blockDef, x=60, y=60){
     const id = 'n'+Date.now()+Math.floor(Math.random()*999);
     const outputs = getBlockOutputs(blockDef);
@@ -92,46 +163,123 @@
       outputs, inputs
     };
     nodes.push(node);
+    normalizeNodePorts(node);
     renderNode(node);
+    updateExportButtonState();
+  }
+
+  function portBadge(required){
+    const span = document.createElement('span');
+    span.className = 'portBadge ' + (required ? 'required' : 'optional');
+    span.textContent = required ? 'required' : 'optional';
+    return span;
+  }
+
+  function selectNodeVisual(node){
+    document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+    if (node){
+      const el = nodeElement(node.id);
+      if (el) el.classList.add('selected');
+    }
   }
 
   function renderNode(node){
-    const el = document.createElement('div'); el.className='node'; el.dataset.id=node.id;
-    el.style.left = node.x + 'px'; el.style.top = node.y + 'px';
+    normalizeNodePorts(node);
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.dataset.id = node.id;
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
 
-    el.innerHTML = `
-      <div class="nodeHeader">${node.block.name} <span style="float:right">`+(node.saved?'<span class="savedBadge">saved</span>':'')+`</span></div>
-      <div class="nodeBody"></div>
+    const kind = (node.block.category || 'Module').toLowerCase();
+    const header = document.createElement('div');
+    header.className = 'nodeHeader ' + (kind === 'function' ? 'function' : 'module');
+    header.innerHTML = `
+      <div class="nodeHeaderTop">
+        <span class="nodeName">${node.block.name}</span>
+        ${node.saved ? '<span class="savedBadge">saved</span>' : ''}
+      </div>
+      <div class="nodePath">${node.block.path || ''}</div>
     `;
-    const body = el.querySelector('.nodeBody');
-    // create outputs
-    node.outputs.forEach((o, idx)=>{
-      const h = document.createElement('div'); h.className='handle output';
-      h.title = o;
-      h.style.top = (20 + idx*18) + 'px';
-      h.dataset.out = idx;
-      h.addEventListener('pointerdown', (ev)=> startConnection(ev, node.id, idx));
-      el.appendChild(h);
-    });
-    node.inputs.forEach((inp, idx)=>{
-      const hin = document.createElement('div');
-      hin.className = 'handle input';
-      hin.title = inp.name;
-      hin.style.top = (20 + idx * 18) + 'px';
-      hin.dataset.input = idx;
-      el.appendChild(hin);
-    });
 
-    const header = el.querySelector('.nodeHeader');
-    header.addEventListener('pointerdown', (ev)=>{
-      selectedNode = node; showProps(node); dragging = node;
+    const ports = document.createElement('div');
+    ports.className = 'nodePorts';
+
+    if (node.inputs.length){
+      const inLabel = document.createElement('div');
+      inLabel.className = 'portSectionLabel';
+      inLabel.textContent = 'Inputs';
+      ports.appendChild(inLabel);
+
+      node.inputs.forEach((inp, idx) => {
+        const row = document.createElement('div');
+        row.className = 'portRow inputPort';
+        row.dataset.input = idx;
+
+        const handle = document.createElement('div');
+        handle.className = 'handle input';
+        handle.title = inp.name + (inp.required ? ' (required)' : ' (optional)');
+        handle.dataset.input = idx;
+
+        const name = document.createElement('span');
+        name.className = 'portName';
+        name.textContent = inp.name;
+
+        row.appendChild(handle);
+        row.appendChild(name);
+        row.appendChild(portBadge(inp.required));
+        ports.appendChild(row);
+      });
+    }
+
+    if (node.outputs.length){
+      const outLabel = document.createElement('div');
+      outLabel.className = 'portSectionLabel';
+      outLabel.textContent = 'Outputs';
+      ports.appendChild(outLabel);
+
+      node.outputs.forEach((out, idx) => {
+        const row = document.createElement('div');
+        row.className = 'portRow outputPort';
+        row.dataset.out = idx;
+
+        const name = document.createElement('span');
+        name.className = 'portName';
+        name.textContent = out.name;
+
+        const handle = document.createElement('div');
+        handle.className = 'handle output';
+        handle.title = out.name;
+        handle.dataset.out = idx;
+        handle.addEventListener('pointerdown', (ev) => startConnection(ev, node.id, idx));
+
+        row.appendChild(name);
+        row.appendChild(handle);
+        ports.appendChild(row);
+      });
+    }
+
+    el.appendChild(header);
+    el.appendChild(ports);
+
+    header.addEventListener('pointerdown', (ev) => {
+      selectedNode = node;
+      selectNodeVisual(node);
+      showProps(node);
+      dragging = node;
       const pt = canvasPoint(ev.clientX, ev.clientY);
-      dragOffset.x = pt.x - node.x; dragOffset.y = pt.y - node.y;
+      dragOffset.x = pt.x - node.x;
+      dragOffset.y = pt.y - node.y;
       header.setPointerCapture(ev.pointerId);
     });
-    header.addEventListener('pointerup', ()=>{ dragging = null; });
+    header.addEventListener('pointerup', () => { dragging = null; });
 
-    el.addEventListener('click', (ev)=>{ ev.stopPropagation(); selectedNode = node; showProps(node); })
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      selectedNode = node;
+      selectNodeVisual(node);
+      showProps(node);
+    });
 
     canvas.appendChild(el);
     resizeSvgLayer();
@@ -296,46 +444,128 @@
     });
   }
 
+  function nodeHasRequiredFields(node){
+    const reqs = Object.keys(node.block.init_arguments || {}).filter(k => node.block.init_arguments[k].required === 'True');
+    return reqs.every(k => node.init_arguments[k] !== null && node.init_arguments[k] !== '' && node.init_arguments[k] !== undefined);
+  }
+
+  function allNodesSaved(){
+    return nodes.length > 0 && nodes.every(n => n.saved);
+  }
+
+  function updateExportButtonState(){
+    exportBtn.disabled = !allNodesSaved();
+    exportBtn.title = allNodesSaved() ? '' : 'Save all nodes before saving the graph';
+  }
+
   function ensureArrowMarker(){
     if (svg.querySelector('defs')) return;
     const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
     svg.appendChild(defs);
   }
 
-  // selection & props
-  function showProps(node){ propsEmpty.style.display='none'; propsEl.style.display='block'; propsEl.innerHTML='';
+  function showProps(node){
+    propsEmpty.style.display = 'none';
+    propsEl.style.display = 'block';
+    propsEl.innerHTML = '';
+
     const form = document.createElement('div');
-    const title = document.createElement('div'); title.innerHTML = `<strong>${node.block.name}</strong> <div style="font-size:12px;color:#666">${node.block.path||''}</div>`;
+    const title = document.createElement('div');
+    title.className = 'propsTitle';
+    title.innerHTML = `<strong>${node.block.name}</strong><span>${node.block.path || ''}</span>`;
     form.appendChild(title);
-    const args = node.block.init_arguments||{};
-    Object.keys(args).forEach(k=>{
-      const row = document.createElement('div'); row.className='formRow';
-      const label = document.createElement('label'); label.innerText = `${k} ${args[k].required==='True'?'*':''}`;
-      const inp = document.createElement('input'); inp.type = (typeof args[k].default === 'number')? 'number':'text'; inp.value = node.init_arguments[k] ?? (args[k].default ?? '');
-      inp.oninput = (ev)=>{ node.init_arguments[k] = inp.value; validateNode(node); }
-      row.appendChild(label); row.appendChild(inp); form.appendChild(row);
+
+    const args = node.block.init_arguments || {};
+    const argKeys = Object.keys(args);
+
+    if (!argKeys.length){
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px;color:var(--text-muted);margin:0 0 12px';
+      empty.textContent = 'No init arguments for this block.';
+      form.appendChild(empty);
+    }
+
+    argKeys.forEach(k => {
+      const row = document.createElement('div');
+      row.className = 'formRow';
+      const label = document.createElement('label');
+      label.innerHTML = `${k}${args[k].required === 'True' ? ' <span class="req">*</span>' : ' <span style="color:var(--text-muted)">(optional)</span>'}`;
+      const inp = document.createElement('input');
+      inp.type = (typeof args[k].default === 'number') ? 'number' : 'text';
+      inp.value = node.init_arguments[k] != null ? node.init_arguments[k] : (args[k].default != null ? args[k].default : '');
+      inp.oninput = () => { node.init_arguments[k] = inp.value; validateNode(); };
+      row.appendChild(label);
+      row.appendChild(inp);
+      form.appendChild(row);
     });
-    const saveBtn = document.createElement('button'); saveBtn.className='primary'; saveBtn.innerText='Save Node'; saveBtn.onclick = ()=>{ node.saved = true; document.querySelectorAll('.node').forEach(nel=>{ if (nel.dataset.id===node.id) nel.querySelector('.nodeHeader span').innerHTML='<span class="savedBadge">saved</span>'; }); }
-    saveBtn.disabled = !validateNode(node);
-    form.appendChild(saveBtn);
 
-    const deleteBtn = document.createElement('button'); deleteBtn.className='secondary'; deleteBtn.style.marginLeft='8px'; deleteBtn.innerText='Delete Node'; deleteBtn.onclick = ()=>{ deleteNode(node.id) };
-    form.appendChild(deleteBtn);
+    const actions = document.createElement('div');
+    actions.className = 'propsActions';
 
+    const saveWarning = document.createElement('div');
+    saveWarning.className = 'saveWarning';
+    saveWarning.textContent = 'Required fields are not filled';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'primary';
+    saveBtn.innerText = 'Save Node';
+    saveBtn.onclick = () => {
+      if (!nodeHasRequiredFields(node)){
+        saveWarning.classList.add('visible');
+        return;
+      }
+      saveWarning.classList.remove('visible');
+      node.saved = true;
+      const nel = nodeElement(node.id);
+      if (nel){
+        const top = nel.querySelector('.nodeHeaderTop');
+        if (top && !top.querySelector('.savedBadge')){
+          const badge = document.createElement('span');
+          badge.className = 'savedBadge';
+          badge.textContent = 'saved';
+          top.appendChild(badge);
+        }
+      }
+      updateExportButtonState();
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'secondary';
+    deleteBtn.innerText = 'Delete';
+    deleteBtn.onclick = () => deleteNode(node.id);
+
+    actions.appendChild(saveBtn);
+    actions.appendChild(deleteBtn);
+    form.appendChild(actions);
+    form.appendChild(saveWarning);
     propsEl.appendChild(form);
 
-    function validateNode(n){
-      const reqs = Object.keys(n.block.init_arguments||{}).filter(k=>n.block.init_arguments[k].required==='True');
-      const ok = reqs.every(k=> n.init_arguments[k] !== null && n.init_arguments[k] !== '' && n.init_arguments[k] !== undefined);
-      saveBtn.disabled = !ok;
-      return ok;
+    function validateNode(){
+      if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
     }
   }
 
-  function deleteNode(id){ nodes = nodes.filter(n=>n.id!==id); connections = connections.filter(c=> c.from!==id && c.to!==id); const el = document.querySelector(`.node[data-id='${id}']`); if (el) el.remove(); propsEl.innerHTML=''; propsEl.style.display='none'; propsEmpty.style.display='block'; resizeSvgLayer(); updateConnections(); }
+  function deleteNode(id){
+    nodes = nodes.filter(n => n.id !== id);
+    connections = connections.filter(c => c.from !== id && c.to !== id);
+    const el = nodeElement(id);
+    if (el) el.remove();
+    propsEl.innerHTML = '';
+    propsEl.style.display = 'none';
+    propsEmpty.style.display = 'block';
+    selectedNode = null;
+    selectNodeVisual(null);
+    resizeSvgLayer();
+    updateConnections();
+    updateExportButtonState();
+  }
 
-  // canvas click to deselect
-  canvas.addEventListener('click', ()=>{ selectedNode=null; propsEl.style.display='none'; propsEmpty.style.display='block'; });
+  canvas.addEventListener('click', () => {
+    selectedNode = null;
+    selectNodeVisual(null);
+    propsEl.style.display = 'none';
+    propsEmpty.style.display = 'block';
+  });
 
   // accept drops from palette
   canvas.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
@@ -370,20 +600,39 @@
         const newId = 'n'+Date.now()+Math.floor(Math.random()*999);
         const newNode = JSON.parse(JSON.stringify(clipboardNode));
         newNode.id = newId; newNode.x = x; newNode.y = y; newNode.saved = false;
-        nodes.push(newNode); renderNode(newNode); e.preventDefault();
+        nodes.push(newNode); renderNode(newNode); updateExportButtonState(); e.preventDefault();
       }
     }
     // delete
-    if ((e.key==='Delete' || e.key==='Backspace') && selectedNode){ deleteNode(selectedNode.id); selectedNode=null; }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNode){
+      deleteNode(selectedNode.id);
+      selectedNode = null;
+    }
   });
 
   // export graph
-  exportBtn.onclick = ()=>{
+  exportBtn.onclick = () => {
+    if (!allNodesSaved()){
+      alert('All blocks must be saved before saving the graph.');
+      return;
+    }
+    const name = prompt('What should be the name of the graph?', 'my-graph');
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed){
+      alert('Graph name cannot be empty.');
+      return;
+    }
+    const filename = trimmed.endsWith('.json') ? trimmed : trimmed + '.json';
     const graph = { nodes: nodes.map(n=>({ id:n.id, block: n.block.name, path:n.block.path, x:n.x, y:n.y, init_arguments:n.init_arguments, outputs:n.outputs, inputs:n.inputs })), connections };
-    fetch('/api/save_graph', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ graph, name: 'graph-'+Date.now()+'.json' }) }).then(r=>r.json()).then(j=>{ if (j.ok) alert('Saved to '+j.path); else alert('Save failed'); }).catch(e=>{ alert('Save failed: '+e.message); });
-  }
+    fetch('/api/save_graph', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ graph, name: filename }) })
+      .then(r => r.json())
+      .then(j => { if (j.ok) alert('Saved to ' + j.path); else alert('Save failed'); })
+      .catch(e => { alert('Save failed: ' + e.message); });
+  };
 
   // init
   resizeSvgLayer();
+  updateExportButtonState();
   fetchBlocks();
 })();
