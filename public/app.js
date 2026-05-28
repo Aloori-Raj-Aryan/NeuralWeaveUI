@@ -24,6 +24,8 @@
   let lastMousePos = { x: 0, y: 0 };
   let clipboard = null;
   let canvasZoom = 1;
+  let pendingPlacement = null;
+  let paletteDragStarted = false;
   const ZOOM_MAX = 2.5;
   const ZOOM_STEP = 0.08;
 
@@ -49,7 +51,7 @@
   }
 
   function selectBlockFromSearch(blockDef){
-    addNode(blockDef);
+    startBlockPlacement(blockDef);
     closeSearchDropdown();
   }
 
@@ -121,12 +123,66 @@
   }
 
   function attachBlockItem(el, b){
-    el.onclick = () => addNode(b);
+    el.onclick = () => {
+      if (paletteDragStarted) return;
+      startBlockPlacement(b, el);
+    };
     el.draggable = true;
     el.addEventListener('dragstart', (ev) => {
+      paletteDragStarted = true;
       ev.dataTransfer.setData('application/json', JSON.stringify(b));
       ev.dataTransfer.effectAllowed = 'copy';
     });
+    el.addEventListener('dragend', () => {
+      setTimeout(() => { paletteDragStarted = false; }, 0);
+    });
+  }
+
+  const panelHint = document.querySelector('.panelHint');
+
+  function updatePlacementHint(){
+    if (!panelHint) return;
+    if (pendingPlacement){
+      panelHint.textContent = `Placing "${pendingPlacement.name}" — click the canvas (Esc to cancel)`;
+      panelHint.classList.add('placementHint');
+    } else {
+      panelHint.textContent = 'Click a block, then click the canvas to place it';
+      panelHint.classList.remove('placementHint');
+    }
+  }
+
+  function highlightPaletteBlock(blockDef){
+    document.querySelectorAll('.blockItem.placementActive, .searchResultItem.placementActive')
+      .forEach(e => e.classList.remove('placementActive'));
+    if (!blockDef) return;
+    document.querySelectorAll('.blockItem').forEach(item => {
+      const nameEl = item.querySelector('.blockItemName');
+      if (nameEl && nameEl.textContent === blockDef.name) item.classList.add('placementActive');
+    });
+  }
+
+  function startBlockPlacement(blockDef, paletteEl){
+    pendingPlacement = blockDef;
+    canvas.classList.add('placementMode');
+    highlightPaletteBlock(blockDef);
+    if (paletteEl) paletteEl.classList.add('placementActive');
+    updatePlacementHint();
+    canvas.focus();
+  }
+
+  function cancelBlockPlacement(){
+    pendingPlacement = null;
+    canvas.classList.remove('placementMode');
+    highlightPaletteBlock(null);
+    updatePlacementHint();
+  }
+
+  function placePendingBlock(worldX, worldY){
+    if (!pendingPlacement) return;
+    const blockDef = pendingPlacement;
+    cancelBlockPlacement();
+    addNode(blockDef, worldX, worldY);
+    selectSingleNode(nodes[nodes.length - 1]);
   }
 
   function renderPalette(){
@@ -159,6 +215,7 @@
       details.appendChild(list);
       blocksListEl.appendChild(details);
     });
+    if (pendingPlacement) highlightPaletteBlock(pendingPlacement);
   }
 
   function getBlockInputs(blockDef){
@@ -333,7 +390,7 @@
     );
   }
 
-  function addNode(blockDef, x=60, y=60){
+  function addNode(blockDef, x, y){
     const id = 'n'+Date.now()+Math.floor(Math.random()*999);
     const outputs = getBlockOutputs(blockDef);
     const inputs = getBlockInputs(blockDef);
@@ -954,6 +1011,14 @@
     if (e.target.closest('.node')) return;
 
     canvas.focus();
+
+    if (pendingPlacement){
+      const pt = canvasPoint(e.clientX, e.clientY);
+      placePendingBlock(pt.x, pt.y);
+      e.preventDefault();
+      return;
+    }
+
     const pt = canvasPoint(e.clientX, e.clientY);
     marquee = {
       startX: pt.x,
@@ -1052,7 +1117,7 @@
       const raw = e.dataTransfer.getData('application/json');
       const b = JSON.parse(raw);
       const pt = canvasPoint(e.clientX, e.clientY);
-      addNode(b, pt.x - 60, pt.y - 20);
+      addNode(b, pt.x, pt.y);
     }catch(err){ console.warn('drop parse failed', err); }
   });
 
@@ -1062,6 +1127,13 @@
   // keyboard shortcuts: copy, paste, delete
   document.addEventListener('keydown', (e) => {
     if (isEditingText()) return;
+
+    if (e.key === 'Escape' && pendingPlacement){
+      cancelBlockPlacement();
+      e.preventDefault();
+      return;
+    }
+
     const cmd = e.metaKey || e.ctrlKey;
     const key = e.key.toLowerCase();
 

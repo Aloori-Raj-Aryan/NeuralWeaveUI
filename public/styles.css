@@ -69,6 +69,10 @@ html, body, #app {
   color: var(--text-muted);
 }
 
+.panelHint.placementHint {
+  color: #93c5fd;
+}
+
 .searchContainer {
   margin-top: 12px;
   position: relative;
@@ -226,6 +230,20 @@ html, body, #app {
 }
 
 .blockItem:active { transform: scale(0.98); cursor: grabbing; }
+
+.blockItem.placementActive {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.16);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+  cursor: pointer;
+}
+
+.searchResultItem.placementActive {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: var(--accent);
+}
+
+#canvas.placementMode { cursor: crosshair; }
 
 .blockItemName {
   font-size: 13px;
