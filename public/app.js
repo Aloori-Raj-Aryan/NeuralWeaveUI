@@ -15,9 +15,11 @@
   const savedGraphsListEl = document.getElementById('savedGraphsList');
   const sessionLabelEl = document.getElementById('sessionLabel');
   const SESSION_STORAGE_KEY = 'nwui_session';
+  const VERSION_STORAGE_KEY = 'nwui_torch_version';
 
   let blocks = [];
   let sessionId = null;
+  let torchVersion = null;
   let nodes = [];
   let connections = [];
   let selectedNodeIds = new Set();
@@ -111,7 +113,8 @@
 
   function updateSessionLabel(){
     if (!sessionLabelEl || !sessionId) return;
-    sessionLabelEl.textContent = `Session ${sessionId.slice(0, 8)}… — reload starts a new session`;
+    const ver = torchVersion ? ` · PyTorch ${torchVersion.id}` : '';
+    sessionLabelEl.textContent = `Session ${sessionId.slice(0, 8)}…${ver} — reload starts a new session`;
   }
 
   async function readJsonResponse(res){
@@ -1461,7 +1464,11 @@
       .catch(e => { alert('Save failed: ' + e.message); });
   };
 
-  async function boot(){
+  async function boot(versionMeta){
+    torchVersion = versionMeta || null;
+    if (versionMeta && versionMeta.id) {
+      sessionStorage.setItem(VERSION_STORAGE_KEY, versionMeta.id);
+    }
     try {
       await initSession();
     } catch (err){
@@ -1473,7 +1480,8 @@
     updateExportButtonState();
     await fetchBlocks();
     await fetchSavedGraphs();
+    updateSessionLabel();
   }
 
-  boot();
+  window.NWUI_startEditor = boot;
 })();

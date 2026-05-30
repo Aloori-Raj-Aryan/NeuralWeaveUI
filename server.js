@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
+const { spawn } = require('child_process');
 const bodyParser = require('body-parser');
 
 const SERVER_VERSION = '0.2.0';
@@ -75,8 +76,77 @@ async function ensureGraphsRoot(){
   await fs.mkdir(GRAPHS_ROOT, { recursive: true });
 }
 
+function runPythonScript(args){
+  return new Promise((resolve, reject) => {
+    const py = process.env.PYTHON || 'python3';
+    const script = path.join(__dirname, 'block_management', 'create_block.py');
+    const child = spawn(py, [script, ...args], {
+      cwd: __dirname,
+      env: process.env,
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.on('error', reject);
+    child.on('close', code => {
+      if (code !== 0){
+        reject(new Error(stderr.trim() || stdout.trim() || `create_block.py exited ${code}`));
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+async function loadTorchVersionsMeta(){
+  const py = process.env.PYTHON || 'python3';
+  const code = [
+    'import json, importlib.util',
+    'from pathlib import Path',
+    "p = Path('block_management/blocks_version.py')",
+    "spec = importlib.util.spec_from_file_location('blocks_version', p)",
+    'm = importlib.util.module_from_spec(spec)',
+    'spec.loader.exec_module(m)',
+    "print(json.dumps({'versions': m.VERSIONS, 'default': m.DEFAULT_VERSION}))",
+  ].join('\n');
+  return new Promise((resolve, reject) => {
+    const child = spawn(py, ['-c', code], { cwd: __dirname, env: process.env });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', chunk => { stdout += chunk; });
+    child.stderr.on('data', chunk => { stderr += chunk; });
+    child.on('error', reject);
+    child.on('close', code => {
+      if (code !== 0) return reject(new Error(stderr.trim() || `version meta exited ${code}`));
+      try {
+        resolve(JSON.parse(stdout.trim()));
+      } catch (err){
+        reject(new Error('Invalid version metadata: ' + err.message));
+      }
+    });
+  });
+}
+
+function parseCreateBlocksResult(stdout){
+  const lines = stdout.trim().split('\n').filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i -= 1){
+    try {
+      return JSON.parse(lines[i]);
+    } catch (_) { /* try previous line */ }
+  }
+  return { ok: 0, failed: 0 };
+}
+
 async function readBlocks(){
   const base = path.join(__dirname, 'blocks');
+  try {
+    await fs.access(base);
+  } catch {
+    const err = new Error('blocks directory missing');
+    err.code = 'ENOENT';
+    throw err;
+  }
   const results = [];
 
   async function walk(dir){
@@ -130,11 +200,64 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/torch-versions', async (req, res) => {
+  try {
+    const meta = await loadTorchVersionsMeta();
+    const versions = Object.entries(meta.versions).map(([id, info]) => ({
+      id,
+      label: info.label,
+      description: info.description || '',
+      catalog: info.catalog,
+    }));
+    res.json({ ok: true, versions, defaultVersion: meta.default });
+  } catch (err){
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/prepare-blocks', async (req, res) => {
+  try {
+    const version = req.body && req.body.version;
+    if (!version) return res.status(400).json({ ok: false, error: 'version is required' });
+
+    const meta = await loadTorchVersionsMeta();
+    if (!meta.versions[version]){
+      return res.status(400).json({ ok: false, error: `Unknown torch version: ${version}` });
+    }
+
+    const { stdout } = await runPythonScript(['--version', version]);
+    const result = parseCreateBlocksResult(stdout);
+    if (result.failed > 0){
+      return res.status(500).json({
+        ok: false,
+        error: `Block generation failed for ${result.failed} block(s)`,
+        ...result,
+        version,
+      });
+    }
+
+    res.json({
+      ok: true,
+      version,
+      label: meta.versions[version].label,
+      blocksGenerated: result.ok,
+    });
+  } catch (err){
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.get('/api/blocks', async (req, res) => {
   try {
     const blocks = await readBlocks();
     res.json({ ok: true, blocks });
   } catch (err){
+    if (err.code === 'ENOENT'){
+      return res.status(404).json({
+        ok: false,
+        error: 'Blocks not generated yet. Select a torch version on the home page.',
+      });
+    }
     res.status(500).json({ ok: false, error: err.message });
   }
 });
