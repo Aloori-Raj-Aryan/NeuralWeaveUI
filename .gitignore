@@ -2,3 +2,4 @@ node_modules/
 saved_graphs/
 *__pycache__*
 blocks/
+blocks_cache/

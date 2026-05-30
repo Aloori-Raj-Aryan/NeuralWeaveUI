@@ -128,10 +128,20 @@
     const meta = requireVersion();
     if (!meta) return;
 
-    setLoading(true, `Generating blocks for PyTorch ${selectedVersion}…`);
     setVersionError('');
 
     try {
+      const statusRes = await fetch(`/api/blocks-status?version=${encodeURIComponent(selectedVersion)}`);
+      const status = await statusRes.json().catch(() => ({}));
+      const useCache = statusRes.ok && status.ready && status.activeVersion === selectedVersion;
+
+      setLoading(
+        true,
+        useCache
+          ? `Loading cached blocks for PyTorch ${selectedVersion}…`
+          : `Generating blocks for PyTorch ${selectedVersion}…`
+      );
+
       const result = await prepareBlocks(selectedVersion);
       sessionStorage.setItem(VERSION_STORAGE_KEY, selectedVersion);
       const versionMeta = {
