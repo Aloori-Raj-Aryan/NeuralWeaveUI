@@ -15,9 +15,11 @@
   const savedGraphsListEl = document.getElementById('savedGraphsList');
   const sessionLabelEl = document.getElementById('sessionLabel');
   const SESSION_STORAGE_KEY = 'nwui_session';
+  const VERSION_STORAGE_KEY = 'nwui_torch_version';
 
   let blocks = [];
   let sessionId = null;
+  let torchVersion = null;
   let nodes = [];
   let connections = [];
   let selectedNodeIds = new Set();
@@ -111,7 +113,8 @@
 
   function updateSessionLabel(){
     if (!sessionLabelEl || !sessionId) return;
-    sessionLabelEl.textContent = `Session ${sessionId.slice(0, 8)}… — reload starts a new session`;
+    const ver = torchVersion ? ` · PyTorch ${torchVersion.id}` : '';
+    sessionLabelEl.textContent = `Session ${sessionId.slice(0, 8)}…${ver} — reload starts a new session`;
   }
 
   async function readJsonResponse(res){
@@ -171,16 +174,16 @@
     const data = await readJsonResponse(res);
     const names = new Set((data.ok && data.graphs ? data.graphs : []).map(g => g.name));
     let i = 1;
-    let candidate = 'graph-1.json';
+    let candidate = 'graph-1.svg';
     while (names.has(candidate)){
       i += 1;
-      candidate = `graph-${i}.json`;
+      candidate = `graph-${i}.svg`;
     }
-    return candidate.replace(/\.json$/, '');
+    return candidate.replace(/\.svg$/i, '');
   }
 
   async function graphNameExists(name){
-    const filename = name.endsWith('.json') ? name : name + '.json';
+    const filename = name.toLowerCase().endsWith('.svg') ? name : `${name}.svg`;
     const res = await apiFetch('/api/graphs');
     const data = await readJsonResponse(res);
     if (!data.ok || !data.graphs) return false;
@@ -211,8 +214,8 @@
       const loadBtn = document.createElement('button');
       loadBtn.type = 'button';
       loadBtn.textContent = g.name;
-      loadBtn.title = `Load ${g.name}`;
-      loadBtn.onclick = () => loadGraphFromSession(g.name);
+      loadBtn.title = `View ${g.name}`;
+      loadBtn.onclick = () => viewSavedGraph(g.name);
 
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
@@ -246,63 +249,86 @@
     updateExportButtonState();
   }
 
-  async function loadGraphFromSession(name){
+  async function viewSavedGraph(name){
     const res = await apiFetch(`/api/graphs/${encodeURIComponent(name)}`);
-    const data = await res.json();
-    if (!data.ok){
-      alert('Failed to load graph: ' + (data.error || 'unknown error'));
+    if (!res.ok){
+      const data = await readJsonResponse(res).catch(() => ({}));
+      alert('Failed to open graph: ' + (data.error || res.statusText));
       return;
     }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
 
-    clearCanvas();
-    const idMap = {};
+  function escapeXml(text){
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
-    (data.graph.nodes || []).forEach(n => {
-      const blockDef = findBlockDef(n.block, n.path);
-      if (!blockDef){
-        console.warn('Missing block definition for', n.block, n.path);
-        return;
-      }
-      const newId = newNodeId();
-      idMap[n.id] = newId;
-      const node = {
-        id: newId,
-        block: blockDef,
-        x: n.x,
-        y: n.y,
-        saved: true,
-        init_arguments: n.init_arguments || {},
-        outputs: n.outputs || getBlockOutputs(blockDef),
-        inputs: n.inputs || getBlockInputs(blockDef)
-      };
-      normalizeNodePorts(node);
-      nodes.push(node);
-      renderNode(node);
-      const nel = nodeElement(newId);
-      if (nel){
-        const top = nel.querySelector('.nodeHeaderTop');
-        if (top && !top.querySelector('.savedBadge')){
-          const badge = document.createElement('span');
-          badge.className = 'savedBadge';
-          badge.textContent = 'saved';
-          top.appendChild(badge);
-        }
-      }
+  function buildGraphSvg(){
+    resizeSvgLayer();
+    let maxX = canvas.clientWidth || 800;
+    let maxY = canvas.clientHeight || 600;
+    nodes.forEach(n => {
+      const el = nodeElement(n.id);
+      const w = el ? el.offsetWidth : 240;
+      const h = el ? el.offsetHeight : 140;
+      maxX = Math.max(maxX, n.x + w + 80);
+      maxY = Math.max(maxY, n.y + h + 80);
     });
 
-    (data.graph.connections || []).forEach(c => {
-      if (!idMap[c.from] || !idMap[c.to]) return;
-      connections.push({
-        from: idMap[c.from],
-        fromIndex: c.fromIndex,
-        to: idMap[c.to],
-        toIndex: c.toIndex
-      });
+    const width = Math.ceil(maxX);
+    const height = Math.ceil(maxY);
+    let body = `<rect width="${width}" height="${height}" fill="#eef1f6"/>`;
+
+    connections.forEach(c => {
+      const fromNode = nodes.find(n => n.id === c.from);
+      const toNode = nodes.find(n => n.id === c.to);
+      if (!fromNode || !toNode) return;
+
+      const fromEl = document.querySelector(`.node[data-id='${c.from}'] .handle.output[data-out='${c.fromIndex}']`);
+      const toEl = document.querySelector(`.node[data-id='${c.to}'] .handle.input[data-input='${c.toIndex}']`);
+      if (!fromEl || !toEl) return;
+
+      const { x: x1, y: y1 } = handleCenter(fromNode, fromEl);
+      const { x: x2, y: y2 } = handleCenter(toNode, toEl);
+      const curve = connectionCurve(x1, y1, x2, y2);
+      body += `<path d="${curve.d}" fill="none" stroke="#22c55e" stroke-width="2.5"/>`;
+      const angle = Math.atan2(y2 - curve.endCtrlY, x2 - curve.endCtrlX);
+      const size = 10;
+      const leftX = x2 - size * Math.cos(angle - Math.PI / 7);
+      const leftY = y2 - size * Math.sin(angle - Math.PI / 7);
+      const rightX = x2 - size * Math.cos(angle + Math.PI / 7);
+      const rightY = y2 - size * Math.sin(angle + Math.PI / 7);
+      body += `<polygon points="${x2},${y2} ${leftX},${leftY} ${rightX},${rightY}" fill="#22c55e"/>`;
     });
 
-    updateConnections();
-    updateExportButtonState();
-    clearSelection();
+    nodes.forEach(n => {
+      const el = nodeElement(n.id);
+      const w = el ? el.offsetWidth : 240;
+      const h = el ? el.offsetHeight : 140;
+      const kind = (n.block.category || 'Module').toLowerCase();
+      const headerFill = kind === 'function' ? '#0ea5e9' : '#6366f1';
+      const headerH = 52;
+
+      body += `<rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="10" fill="#ffffff" stroke="#dfe4ee"/>`;
+      body += `<rect x="${n.x}" y="${n.y}" width="${w}" height="${headerH}" rx="10" fill="${headerFill}"/>`;
+      body += `<rect x="${n.x}" y="${n.y + headerH - 10}" width="${w}" height="10" fill="${headerFill}"/>`;
+      body += `<text x="${n.x + 14}" y="${n.y + 22}" fill="#ffffff" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600">${escapeXml(n.block.name)}</text>`;
+      body += `<text x="${n.x + 14}" y="${n.y + 38}" fill="#ffffff" font-family="IBM Plex Mono, monospace" font-size="10" opacity="0.9">${escapeXml(n.block.path || '')}</text>`;
+    });
+
+    return (
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+      body +
+      '</svg>'
+    );
   }
 
   async function deleteGraphFromSession(name){
@@ -1128,7 +1154,7 @@
 
   function updateExportButtonState(){
     exportBtn.disabled = !allNodesSaved();
-    exportBtn.title = allNodesSaved() ? '' : 'Save all nodes before saving the graph';
+    exportBtn.title = allNodesSaved() ? '' : 'Save all nodes before exporting SVG';
   }
 
   function ensureArrowMarker(){
@@ -1408,7 +1434,6 @@
 
   document.addEventListener('click', closeSearchOnClickOutside);
 
-  // export graph
   exportBtn.onclick = async () => {
     if (!allNodesSaved()){
       alert('All blocks must be saved before saving the graph.');
@@ -1419,7 +1444,7 @@
       defaultName = await suggestGraphName();
     } catch (e) { /* use fallback */ }
 
-    let promptMessage = 'What should be the name of the graph?';
+    let promptMessage = 'What should the SVG file be named?';
     let filename = null;
 
     while (!filename){
@@ -1428,26 +1453,25 @@
 
       const trimmed = name.trim();
       if (!trimmed){
-        promptMessage = 'Graph name cannot be empty. Enter a name:';
-        defaultName = name;
+        promptMessage = 'Name cannot be empty. Enter a name:';
         continue;
       }
 
-      const candidate = trimmed.endsWith('.json') ? trimmed : trimmed + '.json';
+      const candidate = trimmed.toLowerCase().endsWith('.svg') ? trimmed : `${trimmed}.svg`;
       if (await graphNameExists(candidate)){
         promptMessage = `"${candidate}" already exists in this session. Enter a different name:`;
-        defaultName = trimmed.replace(/\.json$/i, '');
+        defaultName = candidate.replace(/\.svg$/i, '');
         continue;
       }
 
       filename = candidate;
     }
 
-    const graph = { nodes: nodes.map(n=>({ id:n.id, block: n.block.name, path:n.block.path, x:n.x, y:n.y, init_arguments:n.init_arguments, outputs:n.outputs, inputs:n.inputs })), connections };
+    const svg = buildGraphSvg();
     apiFetch('/api/save_graph', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ graph, name: filename })
+      body: JSON.stringify({ svg, name: filename })
     })
       .then(r => r.json())
       .then(j => {
@@ -1461,7 +1485,11 @@
       .catch(e => { alert('Save failed: ' + e.message); });
   };
 
-  async function boot(){
+  async function boot(versionMeta){
+    torchVersion = versionMeta || null;
+    if (versionMeta && versionMeta.id) {
+      sessionStorage.setItem(VERSION_STORAGE_KEY, versionMeta.id);
+    }
     try {
       await initSession();
     } catch (err){
@@ -1473,7 +1501,8 @@
     updateExportButtonState();
     await fetchBlocks();
     await fetchSavedGraphs();
+    updateSessionLabel();
   }
 
-  boot();
+  window.NWUI_startEditor = boot;
 })();

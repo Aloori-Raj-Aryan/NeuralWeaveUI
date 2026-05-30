@@ -323,28 +323,60 @@ def create_block_json(torch_path: str, file_path: Union[str, Path]) -> Dict[str,
     return spec
 
 
-def load_blocks_catalog(catalog_path: Optional[Path] = None) -> Dict[str, str]:
-    """Load file_path -> torch_path mapping from blocks_1-10-2.py."""
-    path = catalog_path or Path(__file__).resolve().parent / "blocks_1-10-2.py"
-    spec = importlib.util.spec_from_file_location("blocks_catalog", path)
+def _management_dir() -> Path:
+    return Path(__file__).resolve().parent
+
+
+def _load_module_from_file(name: str, file_path: Path) -> Any:
+    spec = importlib.util.spec_from_file_location(name, file_path)
     if spec is None or spec.loader is None:
-        raise ImportError(f"cannot load catalog: {path}")
+        raise ImportError(f"cannot load module: {file_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_version_catalog(version: str) -> Dict[str, str]:
+    """Load block catalog for a torch version from blocks_version.py."""
+    versions_mod = _load_module_from_file(
+        "blocks_version",
+        _management_dir() / "blocks_version.py",
+    )
+    if version not in versions_mod.VERSIONS:
+        raise ValueError(f"unknown torch version: {version}")
+    catalog_file = versions_mod.VERSIONS[version]["catalog"]
+    return load_blocks_catalog(_management_dir() / catalog_file)
+
+
+def load_blocks_catalog(catalog_path: Path) -> Dict[str, str]:
+    """Load file_path -> torch_path mapping from a catalog .py file."""
+    spec = importlib.util.spec_from_file_location("blocks_catalog", catalog_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load catalog: {catalog_path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.blocks
 
 
 def create_all_blocks(
+    version: Optional[str] = None,
     catalog: Optional[Dict[str, str]] = None,
     repo_root: Optional[Path] = None,
 ) -> Tuple[int, List[Tuple[str, str]]]:
-    """Generate every block JSON listed in blocks_1-10-2.py."""
+    """Generate every block JSON for a torch version catalog."""
     root = repo_root or Path(__file__).resolve().parent.parent
-    blocks = catalog or load_blocks_catalog()
+    if catalog is None:
+        if not version:
+            versions_mod = _load_module_from_file(
+                "blocks_version",
+                _management_dir() / "blocks_version.py",
+            )
+            version = versions_mod.DEFAULT_VERSION
+        catalog = load_version_catalog(version)
     failed: List[Tuple[str, str]] = []
     ok = 0
 
-    for rel_path, torch_path in sorted(blocks.items()):
+    for rel_path, torch_path in sorted(catalog.items()):
         out = root / rel_path
         try:
             create_block_json(torch_path, out)
@@ -357,11 +389,22 @@ def create_all_blocks(
     return ok, failed
 
 
-def main() -> int:
-    ok, failed = create_all_blocks()
-    print(f"ok: {ok}")
+def main(argv: Optional[List[str]] = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Generate block JSON for a torch version")
+    parser.add_argument(
+        "--version",
+        default=None,
+        help="torch version key from blocks_version.py (e.g. 1.10.2)",
+    )
+    args = parser.parse_args(argv)
+
+    ok, failed = create_all_blocks(version=args.version)
+    print(json.dumps({"ok": ok, "failed": len(failed), "version": args.version}))
     if failed:
-        print(f"failed: {len(failed)}", file=sys.stderr)
+        for rel_path, msg in failed:
+            print(f"error: {rel_path}: {msg}", file=sys.stderr)
         return 1
     return 0
 

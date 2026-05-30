@@ -10,51 +10,109 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div id="app">
-    <aside id="palette">
-      <div class="panelHeader">
-        <h2>Blocks</h2>
-        <p class="panelHint">Click a block, then click the canvas to place it</p>
-        <div class="searchContainer">
-          <input type="text" id="blockSearch" class="blockSearchInput" placeholder="Search blocks..." />
-          <div id="searchDropdown" class="searchDropdown">
-            <div id="searchResults" class="searchResults"></div>
+  <div id="homePage" class="homePage">
+    <div class="homeTopBar">
+      <label class="homeVersionLabel" for="torchVersionSelect">PyTorch version</label>
+      <select id="torchVersionSelect" class="homeVersionSelect" disabled>
+        <option value="">Loading versions…</option>
+      </select>
+    </div>
+
+    <main class="homeMain">
+      <h1 class="homeTitle">NeuralWeaveUI</h1>
+      <p class="homePurpose">
+        Build PyTorch models visually by wiring layers and ops on a canvas, without writing boilerplate module code by hand.
+      </p>
+      <p class="homePurpose">
+        Pick the torch version that matches your environment, then start a model graph or a training loop workspace.
+      </p>
+
+      <div class="homeActions">
+        <button type="button" id="createModelBtn" class="homeActionCard" disabled>
+          <span class="homeActionTitle">Create model</span>
+          <span class="homeActionDesc">Open the visual graph editor and compose modules from blocks.</span>
+        </button>
+        <button type="button" id="trainingLoopBtn" class="homeActionCard" disabled>
+          <span class="homeActionTitle">Create training loop</span>
+          <span class="homeActionDesc">Design training pipelines around your model graphs.</span>
+        </button>
+      </div>
+
+      <p id="versionError" class="homeError" hidden></p>
+    </main>
+
+    <div id="homeLoading" class="homeLoading hidden">
+      <div class="homeLoadingSpinner"></div>
+      <p id="homeLoadingText">Generating blocks for selected PyTorch version…</p>
+    </div>
+  </div>
+
+  <div id="trainingApp" class="trainingApp hidden">
+    <header class="editorTopBar">
+      <button type="button" id="backHomeFromTrainingBtn" class="editorBackBtn">← Home</button>
+      <span id="trainingVersionLabel" class="editorVersionLabel"></span>
+    </header>
+    <main class="trainingMain">
+      <h1 class="trainingTitle">Training loop</h1>
+      <p class="trainingMessage">
+        Wait for the developers to build it, or help them build it.
+      </p>
+    </main>
+  </div>
+
+  <div id="editorApp" class="editorApp hidden">
+    <header class="editorTopBar">
+      <button type="button" id="backHomeBtn" class="editorBackBtn">← Home</button>
+      <span id="editorVersionLabel" class="editorVersionLabel"></span>
+    </header>
+    <div id="app">
+      <aside id="palette">
+        <div class="panelHeader">
+          <h2>Blocks</h2>
+          <p class="panelHint">Click a block, then click the canvas to place it</p>
+          <div class="searchContainer">
+            <input type="text" id="blockSearch" class="blockSearchInput" placeholder="Search blocks..." />
+            <div id="searchDropdown" class="searchDropdown">
+              <div id="searchResults" class="searchResults"></div>
+            </div>
           </div>
         </div>
-      </div>
-      <div id="blocksList"></div>
-      <div class="savedGraphsSection">
-        <div class="savedGraphsHeader">Saved in this session</div>
-        <div id="savedGraphsList" class="savedGraphsList"></div>
-      </div>
-      <div class="paletteFooter">
-        <div id="sessionLabel" class="sessionLabel"></div>
-        <button id="exportBtn" class="primary">Save Graph</button>
-      </div>
-    </aside>
-    <main id="canvasWrap">
-      <div id="canvas" tabindex="0">
-        <div id="canvasContent">
-          <svg id="connectionsSvg"></svg>
-          <div id="selectionMarquee" hidden></div>
+        <div id="blocksList"></div>
+        <div class="savedGraphsSection">
+          <div class="savedGraphsHeader">Saved in this session</div>
+          <div id="savedGraphsList" class="savedGraphsList"></div>
         </div>
-        <div id="canvasScrollSizer" aria-hidden="true"></div>
-      </div>
-      <div id="zoomControls" class="zoomControls">
-        <span id="zoomLabel">100%</span>
-      </div>
-    </main>
-    <aside id="sidebar">
-      <div class="panelHeader">
-        <h2>Properties</h2>
-      </div>
-      <div id="propsEmpty" class="emptyState">
-        <div class="emptyIcon">⚙</div>
-        <p>Select a node to edit its init arguments</p>
-      </div>
-      <div id="props"></div>
-    </aside>
+        <div class="paletteFooter">
+          <div id="sessionLabel" class="sessionLabel"></div>
+          <button id="exportBtn" class="primary">Save as SVG</button>
+        </div>
+      </aside>
+      <main id="canvasWrap">
+        <div id="canvas" tabindex="0">
+          <div id="canvasContent">
+            <svg id="connectionsSvg"></svg>
+            <div id="selectionMarquee" hidden></div>
+          </div>
+          <div id="canvasScrollSizer" aria-hidden="true"></div>
+        </div>
+        <div id="zoomControls" class="zoomControls">
+          <span id="zoomLabel">100%</span>
+        </div>
+      </main>
+      <aside id="sidebar">
+        <div class="panelHeader">
+          <h2>Properties</h2>
+        </div>
+        <div id="propsEmpty" class="emptyState">
+          <div class="emptyIcon">⚙</div>
+          <p>Select a node to edit its init arguments</p>
+        </div>
+        <div id="props"></div>
+      </aside>
+    </div>
   </div>
+
+  <script src="home.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
