@@ -5,7 +5,6 @@
     "init_arguments": {},
     "forward_arguments": {
         "input": {
-            "type": "Tensor",
             "required": "True",
             "default": null
         }

@@ -8,8 +8,8 @@
             "default": null
         },
         "num_layers": {
-            "required": "False",
-            "default": 6
+            "required": "True",
+            "default": null
         },
         "norm": {
             "required": "False",

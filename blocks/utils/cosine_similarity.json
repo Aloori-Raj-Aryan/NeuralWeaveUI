@@ -14,14 +14,12 @@
             "default": null
         },
         "dim": {
-            "type": "int",
             "required": "False",
             "default": 1
         },
         "eps": {
-            "type": "float",
             "required": "False",
-            "default": 1e-08
+            "default": "1e-8"
         }
     },
     "output": [

@@ -37,7 +37,6 @@
         }
     },
     "output": [
-        "output",
-        "(h_n,c_n)"
+        "output"
     ]
 }

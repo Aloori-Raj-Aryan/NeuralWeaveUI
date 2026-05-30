@@ -4,10 +4,6 @@
     "path": "torch.nn.LogSoftmax",
     "init_arguments": {
         "dim": {
-            "required": "True",
-            "default": 1
-        },
-        "dtype": {
             "required": "False",
             "default": null
         }

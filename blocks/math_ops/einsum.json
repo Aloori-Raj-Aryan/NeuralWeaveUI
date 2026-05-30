@@ -4,12 +4,10 @@
     "path": "torch.einsum",
     "forward_arguments": {
         "equation": {
-            "type": "str",
             "required": "True",
             "default": null
         },
-        "operands": {
-            "type": "Tensor[]",
+        "*operands": {
             "required": "True",
             "default": null
         }

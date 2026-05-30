@@ -11,7 +11,15 @@
             "required": "False",
             "default": null
         },
-        "stride": {
+        "output_ratio": {
+            "required": "False",
+            "default": null
+        },
+        "return_indices": {
+            "required": "False",
+            "default": false
+        },
+        "_random_samples": {
             "required": "False",
             "default": null
         }
@@ -24,7 +32,6 @@
         }
     },
     "output": [
-        "output",
-        "indices"
+        "output"
     ]
 }

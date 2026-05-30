@@ -8,15 +8,9 @@
             "required": "True",
             "default": null
         },
-        "dim": {
-            "type": "int",
+        "dtype": {
             "required": "False",
             "default": null
-        },
-        "keepdim": {
-            "type": "bool",
-            "required": "False",
-            "default": false
         }
     },
     "output": [

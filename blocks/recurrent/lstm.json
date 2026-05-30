@@ -2,58 +2,18 @@
     "name": "LSTM",
     "category": "Module",
     "path": "torch.nn.LSTM",
-    "init_arguments": {
-        "input_size": {
-            "required": "True",
-            "default": null
-        },
-        "hidden_size": {
-            "required": "True",
-            "default": null
-        },
-        "num_layers": {
-            "required": "False",
-            "default": 1
-        },
-        "bias": {
-            "required": "False",
-            "default": true
-        },
-        "batch_first": {
-            "required": "False",
-            "default": false
-        },
-        "dropout": {
-            "required": "False",
-            "default": 0.0
-        },
-        "bidirectional": {
-            "required": "False",
-            "default": false
-        },
-        "device": {
-            "required": "False",
-            "default": null
-        },
-        "dtype": {
-            "required": "False",
-            "default": null
-        }
-    },
+    "init_arguments": {},
     "forward_arguments": {
         "input": {
-            "type": "Tensor",
             "required": "True",
             "default": null
         },
         "hx": {
-            "type": "Tuple[Tensor,Tensor]",
             "required": "False",
             "default": null
         }
     },
     "output": [
-        "output",
-        "(h_n,c_n)"
+        "output"
     ]
 }

@@ -9,12 +9,12 @@
             "default": null
         },
         "min": {
-            "type": "float",
+            "type": "Tensor",
             "required": "False",
             "default": null
         },
         "max": {
-            "type": "float",
+            "type": "Tensor",
             "required": "False",
             "default": null
         }

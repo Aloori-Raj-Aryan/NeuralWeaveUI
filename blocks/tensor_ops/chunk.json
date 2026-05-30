@@ -3,7 +3,7 @@
     "category": "Function",
     "path": "torch.chunk",
     "forward_arguments": {
-        "tensor": {
+        "input": {
             "type": "Tensor",
             "required": "True",
             "default": null

@@ -5,11 +5,11 @@
     "init_arguments": {
         "threshold": {
             "required": "True",
-            "default": 0.0
+            "default": null
         },
         "value": {
             "required": "True",
-            "default": 0.0
+            "default": null
         },
         "inplace": {
             "required": "False",

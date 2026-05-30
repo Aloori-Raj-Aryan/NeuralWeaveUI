@@ -4,12 +4,12 @@
     "path": "torch.nn.Transformer",
     "init_arguments": {
         "d_model": {
-            "required": "True",
-            "default": null
+            "required": "False",
+            "default": 512
         },
         "nhead": {
-            "required": "True",
-            "default": null
+            "required": "False",
+            "default": 8
         },
         "num_encoder_layers": {
             "required": "False",

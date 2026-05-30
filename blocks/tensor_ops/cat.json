@@ -4,12 +4,11 @@
     "path": "torch.cat",
     "forward_arguments": {
         "tensors": {
-            "type": "Tensor[]",
+            "type": "Tensor",
             "required": "True",
             "default": null
         },
         "dim": {
-            "type": "int",
             "required": "False",
             "default": 0
         }

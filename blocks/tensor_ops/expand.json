@@ -3,13 +3,7 @@
     "category": "Function",
     "path": "torch.Tensor.expand",
     "forward_arguments": {
-        "input": {
-            "type": "Tensor",
-            "required": "True",
-            "default": null
-        },
-        "size": {
-            "type": "Tuple[int]",
+        "*sizes": {
             "required": "True",
             "default": null
         }

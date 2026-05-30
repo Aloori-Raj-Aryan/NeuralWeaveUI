@@ -9,12 +9,12 @@
             "default": null
         },
         "size": {
-            "type": "Tuple[int]",
+            "type": "int",
             "required": "False",
             "default": null
         },
         "scale_factor": {
-            "type": "Tuple[float]",
+            "type": "float",
             "required": "False",
             "default": null
         },
@@ -24,6 +24,11 @@
             "default": "nearest"
         },
         "align_corners": {
+            "type": "bool",
+            "required": "False",
+            "default": null
+        },
+        "recompute_scale_factor": {
             "type": "bool",
             "required": "False",
             "default": null

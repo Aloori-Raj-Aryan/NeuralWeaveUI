@@ -42,12 +42,25 @@
         "padding_mode": {
             "required": "False",
             "default": "zeros"
+        },
+        "device": {
+            "required": "False",
+            "default": null
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
         }
     },
     "forward_arguments": {
         "input": {
             "type": "Tensor",
             "required": "True",
+            "default": null
+        },
+        "output_size": {
+            "type": "int",
+            "required": "False",
             "default": null
         }
     },

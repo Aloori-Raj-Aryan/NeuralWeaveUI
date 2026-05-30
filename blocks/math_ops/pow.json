@@ -9,7 +9,7 @@
             "default": null
         },
         "exponent": {
-            "type": "float",
+            "type": "Tensor",
             "required": "True",
             "default": null
         }

@@ -4,22 +4,18 @@
     "path": "torch.scatter",
     "forward_arguments": {
         "input": {
-            "type": "Tensor",
             "required": "True",
             "default": null
         },
         "dim": {
-            "type": "int",
             "required": "True",
-            "default": 0
+            "default": null
         },
         "index": {
-            "type": "Tensor",
             "required": "True",
             "default": null
         },
         "src": {
-            "type": "Tensor",
             "required": "True",
             "default": null
         }

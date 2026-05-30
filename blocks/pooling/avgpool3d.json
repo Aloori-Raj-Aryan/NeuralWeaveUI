@@ -22,6 +22,10 @@
         "count_include_pad": {
             "required": "False",
             "default": true
+        },
+        "divisor_override": {
+            "required": "False",
+            "default": null
         }
     },
     "forward_arguments": {

@@ -7,18 +7,21 @@
             "required": "False",
             "default": 1.0
         },
+        "size_average": {
+            "required": "False",
+            "default": null
+        },
+        "reduce": {
+            "required": "False",
+            "default": null
+        },
         "reduction": {
             "required": "False",
             "default": "mean"
         }
     },
     "forward_arguments": {
-        "input1": {
-            "type": "Tensor",
-            "required": "True",
-            "default": null
-        },
-        "input2": {
+        "input": {
             "type": "Tensor",
             "required": "True",
             "default": null

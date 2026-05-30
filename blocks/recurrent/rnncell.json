@@ -11,13 +11,13 @@
             "required": "True",
             "default": null
         },
-        "nonlinearity": {
-            "required": "False",
-            "default": "tanh"
-        },
         "bias": {
             "required": "False",
             "default": true
+        },
+        "nonlinearity": {
+            "required": "False",
+            "default": "tanh"
         },
         "device": {
             "required": "False",

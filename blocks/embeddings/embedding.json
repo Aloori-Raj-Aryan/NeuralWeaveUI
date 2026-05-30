@@ -31,6 +31,10 @@
             "required": "False",
             "default": false
         },
+        "_weight": {
+            "required": "False",
+            "default": null
+        },
         "device": {
             "required": "False",
             "default": null

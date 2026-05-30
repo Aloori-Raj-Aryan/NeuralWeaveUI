@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate NeuralWeaveUI block JSON from a PyTorch path."""
+"""Generate NeuralWeaveUI block JSON files from block_management/blocks_1-10-2.py."""
 
-import argparse
+import importlib.util
 import inspect
 import json
 import re
@@ -138,7 +138,10 @@ def param_spec(param: inspect.Parameter, include_type: bool, for_init: bool) -> 
 
 
 def signature_parameters(fn: Any) -> List[inspect.Parameter]:
-    sig = inspect.signature(fn)
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return []
     params = []
     for param in sig.parameters.values():
         if param.name in SKIP_PARAMS:
@@ -176,6 +179,19 @@ def _arg_types_from_doc(doc: str) -> Dict[str, str]:
     return types
 
 
+def _parse_args_section(doc: str) -> List[Tuple[str, bool, Any, Optional[str]]]:
+    parsed = []
+    for match in re.finditer(r"^\s*(\w+)\s*\(([^)]+)\)\s*:", doc, re.MULTILINE):
+        name = match.group(1)
+        hint = match.group(2)
+        optional = "optional" in hint.lower()
+        type_hint = _type_from_doc_hint(hint.split(",")[0].strip())
+        parsed.append(
+            (name, not optional, None if optional else inspect.Parameter.empty, type_hint)
+        )
+    return parsed
+
+
 def parse_docstring_signature(obj: Any) -> List[Tuple[str, bool, Any, Optional[str]]]:
     """Parse (name, required, default, type_hint) from torch builtin docstrings."""
     doc = inspect.getdoc(obj) or ""
@@ -186,7 +202,7 @@ def parse_docstring_signature(obj: Any) -> List[Tuple[str, bool, Any, Optional[s
         re.MULTILINE,
     )
     if not match:
-        return []
+        return _parse_args_section(doc)
     raw = match.group(1).replace("\n", " ")
     parts = []
     current = ""
@@ -252,8 +268,12 @@ def collect_arguments(
             (p.name, param_spec(p, include_type, for_init)) for p in params
         )
 
+    parsed = parse_docstring_signature(fn)
+    if not parsed:
+        return OrderedDict()
+
     result = OrderedDict()
-    for name, required, default, type_hint in parse_docstring_signature(fn):
+    for name, required, default, type_hint in parsed:
         if name in SKIP_PARAMS:
             continue
         result[name] = format_param_entry(
@@ -303,52 +323,46 @@ def create_block_json(torch_path: str, file_path: Union[str, Path]) -> Dict[str,
     return spec
 
 
-def parse_cli(argv: Optional[List[str]] = None) -> Tuple[str, str]:
-    parser = argparse.ArgumentParser(
-        prog="create_block.py",
-        description="Generate a NeuralWeaveUI block JSON from a PyTorch dotted path.",
-        usage="%(prog)s torch_path PATH file_path FILE",
-        epilog=(
-            "example:\n"
-            "  python3 scripts/create_block.py "
-            "torch_path torch.nn.Conv2d file_path blocks/convolution/conv2d.json"
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "torch_path_key",
-        choices=["torch_path"],
-        help="literal keyword 'torch_path'",
-    )
-    parser.add_argument(
-        "torch_path",
-        metavar="PATH",
-        help="PyTorch dotted path, e.g. torch.nn.Conv2d or torch.add",
-    )
-    parser.add_argument(
-        "file_path_key",
-        choices=["file_path"],
-        help="literal keyword 'file_path'",
-    )
-    parser.add_argument(
-        "file_path",
-        metavar="FILE",
-        help="output JSON path, e.g. blocks/convolution/conv2d.json",
-    )
-    args = parser.parse_args(argv)
-    return args.torch_path, args.file_path
+def load_blocks_catalog(catalog_path: Optional[Path] = None) -> Dict[str, str]:
+    """Load file_path -> torch_path mapping from blocks_1-10-2.py."""
+    path = catalog_path or Path(__file__).resolve().parent / "blocks_1-10-2.py"
+    spec = importlib.util.spec_from_file_location("blocks_catalog", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load catalog: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.blocks
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    torch_path, file_path = parse_cli(argv)
+def create_all_blocks(
+    catalog: Optional[Dict[str, str]] = None,
+    repo_root: Optional[Path] = None,
+) -> Tuple[int, List[Tuple[str, str]]]:
+    """Generate every block JSON listed in blocks_1-10-2.py."""
+    root = repo_root or Path(__file__).resolve().parent.parent
+    blocks = catalog or load_blocks_catalog()
+    failed: List[Tuple[str, str]] = []
+    ok = 0
 
-    repo_root = Path(__file__).resolve().parent.parent
-    out = Path(file_path)
-    if not out.is_absolute():
-        out = repo_root / out
+    for rel_path, torch_path in sorted(blocks.items()):
+        out = root / rel_path
+        try:
+            create_block_json(torch_path, out)
+            print(f"Wrote {rel_path}")
+            ok += 1
+        except Exception as exc:
+            failed.append((rel_path, str(exc)))
+            print(f"error: {rel_path}: {exc}", file=sys.stderr)
 
-    create_block_json(torch_path, out)
-    print(f"Wrote {out}")
+    return ok, failed
+
+
+def main() -> int:
+    ok, failed = create_all_blocks()
+    print(f"ok: {ok}")
+    if failed:
+        print(f"failed: {len(failed)}", file=sys.stderr)
+        return 1
     return 0
 
 

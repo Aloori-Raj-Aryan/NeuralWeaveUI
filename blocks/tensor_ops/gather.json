@@ -11,12 +11,16 @@
         "dim": {
             "type": "int",
             "required": "True",
-            "default": 0
+            "default": null
         },
         "index": {
             "type": "Tensor",
             "required": "True",
             "default": null
+        },
+        "sparse_grad": {
+            "required": "False",
+            "default": false
         }
     },
     "output": [

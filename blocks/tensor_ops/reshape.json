@@ -9,7 +9,6 @@
             "default": null
         },
         "shape": {
-            "type": "Tuple[int]",
             "required": "True",
             "default": null
         }

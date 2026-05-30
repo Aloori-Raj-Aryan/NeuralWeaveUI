@@ -34,6 +34,14 @@
         "padding_mode": {
             "required": "False",
             "default": "zeros"
+        },
+        "device": {
+            "required": "False",
+            "default": null
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
         }
     },
     "forward_arguments": {

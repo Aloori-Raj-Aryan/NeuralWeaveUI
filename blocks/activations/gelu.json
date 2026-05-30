@@ -2,12 +2,7 @@
     "name": "GELU",
     "category": "Module",
     "path": "torch.nn.GELU",
-    "init_arguments": {
-        "approximate": {
-            "required": "False",
-            "default": false
-        }
-    },
+    "init_arguments": {},
     "forward_arguments": {
         "input": {
             "type": "Tensor",

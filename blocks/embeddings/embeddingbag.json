@@ -31,11 +31,19 @@
             "required": "False",
             "default": false
         },
+        "_weight": {
+            "required": "False",
+            "default": null
+        },
         "include_last_offset": {
             "required": "False",
             "default": false
         },
         "padding_idx": {
+            "required": "False",
+            "default": null
+        },
+        "device": {
             "required": "False",
             "default": null
         },
@@ -51,6 +59,11 @@
             "default": null
         },
         "offsets": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        },
+        "per_sample_weights": {
             "type": "Tensor",
             "required": "False",
             "default": null

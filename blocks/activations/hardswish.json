@@ -2,7 +2,12 @@
     "name": "Hardswish",
     "category": "Module",
     "path": "torch.nn.Hardswish",
-    "init_arguments": {},
+    "init_arguments": {
+        "inplace": {
+            "required": "False",
+            "default": false
+        }
+    },
     "forward_arguments": {
         "input": {
             "type": "Tensor",

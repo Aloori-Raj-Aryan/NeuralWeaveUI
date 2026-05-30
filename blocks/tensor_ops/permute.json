@@ -9,7 +9,6 @@
             "default": null
         },
         "dims": {
-            "type": "Tuple[int]",
             "required": "True",
             "default": null
         }

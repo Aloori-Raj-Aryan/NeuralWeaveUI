@@ -81,7 +81,6 @@
         }
     },
     "output": [
-        "attn_output",
-        "attn_output_weights"
+        "output"
     ]
 }

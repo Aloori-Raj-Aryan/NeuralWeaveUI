@@ -23,10 +23,10 @@
             "required": "False",
             "default": 1e-06
         },
-        "reduction": {
-            "type": "str",
+        "keepdim": {
+            "type": "bool",
             "required": "False",
-            "default": "mean"
+            "default": false
         }
     },
     "output": [

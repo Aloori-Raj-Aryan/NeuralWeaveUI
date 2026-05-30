@@ -7,6 +7,14 @@
             "required": "False",
             "default": 0.0
         },
+        "size_average": {
+            "required": "False",
+            "default": null
+        },
+        "reduce": {
+            "required": "False",
+            "default": null
+        },
         "reduction": {
             "required": "False",
             "default": "mean"

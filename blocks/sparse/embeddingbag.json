@@ -11,10 +11,6 @@
             "required": "True",
             "default": null
         },
-        "mode": {
-            "required": "False",
-            "default": "sum"
-        },
         "max_norm": {
             "required": "False",
             "default": null
@@ -27,15 +23,27 @@
             "required": "False",
             "default": false
         },
+        "mode": {
+            "required": "False",
+            "default": "mean"
+        },
         "sparse": {
             "required": "False",
             "default": false
+        },
+        "_weight": {
+            "required": "False",
+            "default": null
         },
         "include_last_offset": {
             "required": "False",
             "default": false
         },
         "padding_idx": {
+            "required": "False",
+            "default": null
+        },
+        "device": {
             "required": "False",
             "default": null
         },
@@ -51,6 +59,11 @@
             "default": null
         },
         "offsets": {
+            "type": "Tensor",
+            "required": "False",
+            "default": null
+        },
+        "per_sample_weights": {
             "type": "Tensor",
             "required": "False",
             "default": null

@@ -7,9 +7,25 @@
             "required": "False",
             "default": 1.0
         },
+        "p": {
+            "required": "False",
+            "default": 2.0
+        },
+        "eps": {
+            "required": "False",
+            "default": 1e-06
+        },
         "swap": {
             "required": "False",
             "default": false
+        },
+        "size_average": {
+            "required": "False",
+            "default": null
+        },
+        "reduce": {
+            "required": "False",
+            "default": null
         },
         "reduction": {
             "required": "False",

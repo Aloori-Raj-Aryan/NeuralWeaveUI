@@ -9,7 +9,7 @@
             "default": null
         },
         "pad": {
-            "type": "Tuple[int]",
+            "type": "int",
             "required": "True",
             "default": null
         },

@@ -11,7 +11,7 @@
         "dim": {
             "type": "int",
             "required": "True",
-            "default": 0
+            "default": null
         }
     },
     "output": [

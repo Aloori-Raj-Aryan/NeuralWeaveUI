@@ -1,5 +1,5 @@
 {
-    "name": "sparsematmul",
+    "name": "mm",
     "category": "Function",
     "path": "torch.sparse.mm",
     "forward_arguments": {

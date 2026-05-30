@@ -11,12 +11,12 @@
         "dim0": {
             "type": "int",
             "required": "True",
-            "default": 0
+            "default": null
         },
         "dim1": {
             "type": "int",
             "required": "True",
-            "default": 1
+            "default": null
         }
     },
     "output": [

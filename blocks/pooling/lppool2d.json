@@ -1,11 +1,11 @@
 {
-    "name": "LpPool2d",
+    "name": "LPPool2d",
     "category": "Module",
     "path": "torch.nn.LPPool2d",
     "init_arguments": {
         "norm_type": {
             "required": "True",
-            "default": 2
+            "default": null
         },
         "kernel_size": {
             "required": "True",

@@ -9,7 +9,6 @@
             "default": null
         },
         "other": {
-            "type": "Tensor",
             "required": "True",
             "default": null
         }

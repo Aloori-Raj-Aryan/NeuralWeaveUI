@@ -5,7 +5,7 @@
     "init_arguments": {
         "size": {
             "required": "True",
-            "default": 5
+            "default": null
         },
         "alpha": {
             "required": "False",

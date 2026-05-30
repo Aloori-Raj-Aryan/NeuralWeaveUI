@@ -3,6 +3,18 @@
     "category": "Module",
     "path": "torch.nn.BCELoss",
     "init_arguments": {
+        "weight": {
+            "required": "False",
+            "default": null
+        },
+        "size_average": {
+            "required": "False",
+            "default": null
+        },
+        "reduce": {
+            "required": "False",
+            "default": null
+        },
         "reduction": {
             "required": "False",
             "default": "mean"

@@ -4,7 +4,7 @@
     "path": "torch.stack",
     "forward_arguments": {
         "tensors": {
-            "type": "Tensor[]",
+            "type": "Tensor",
             "required": "True",
             "default": null
         },

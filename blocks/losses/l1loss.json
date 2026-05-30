@@ -3,6 +3,14 @@
     "category": "Module",
     "path": "torch.nn.L1Loss",
     "init_arguments": {
+        "size_average": {
+            "required": "False",
+            "default": null
+        },
+        "reduce": {
+            "required": "False",
+            "default": null
+        },
         "reduction": {
             "required": "False",
             "default": "mean"

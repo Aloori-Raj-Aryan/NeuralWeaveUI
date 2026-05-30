@@ -1,11 +1,10 @@
 {
     "name": "DeQuantStub",
     "category": "Module",
-    "path": "torch.nn.DeQuantStub",
+    "path": "torch.quantization.DeQuantStub",
     "init_arguments": {},
     "forward_arguments": {
-        "input": {
-            "type": "Tensor",
+        "x": {
             "required": "True",
             "default": null
         }

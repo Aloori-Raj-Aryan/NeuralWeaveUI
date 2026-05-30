@@ -4,24 +4,24 @@
     "path": "torch.norm",
     "forward_arguments": {
         "input": {
-            "type": "Tensor",
             "required": "True",
             "default": null
         },
         "p": {
-            "type": "float",
             "required": "False",
-            "default": 2
+            "default": "fro"
         },
         "dim": {
-            "type": "int",
             "required": "False",
             "default": null
         },
         "keepdim": {
-            "type": "bool",
             "required": "False",
             "default": false
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
         }
     },
     "output": [

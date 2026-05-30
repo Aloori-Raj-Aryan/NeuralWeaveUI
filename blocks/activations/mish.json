@@ -2,7 +2,12 @@
     "name": "Mish",
     "category": "Module",
     "path": "torch.nn.Mish",
-    "init_arguments": {},
+    "init_arguments": {
+        "inplace": {
+            "required": "False",
+            "default": false
+        }
+    },
     "forward_arguments": {
         "input": {
             "type": "Tensor",

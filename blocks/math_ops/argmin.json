@@ -12,6 +12,11 @@
             "type": "int",
             "required": "False",
             "default": null
+        },
+        "keepdim": {
+            "type": "bool",
+            "required": "False",
+            "default": false
         }
     },
     "output": [

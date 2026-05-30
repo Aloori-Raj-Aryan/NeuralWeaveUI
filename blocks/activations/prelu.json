@@ -10,6 +10,14 @@
         "init": {
             "required": "False",
             "default": 0.25
+        },
+        "device": {
+            "required": "False",
+            "default": null
+        },
+        "dtype": {
+            "required": "False",
+            "default": null
         }
     },
     "forward_arguments": {

@@ -7,11 +7,6 @@
             "type": "Tensor",
             "required": "True",
             "default": null
-        },
-        "dim": {
-            "type": "int",
-            "required": "False",
-            "default": null
         }
     },
     "output": [
