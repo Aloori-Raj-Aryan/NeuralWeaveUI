@@ -313,14 +313,17 @@
       const w = el ? el.offsetWidth : 240;
       const h = el ? el.offsetHeight : 140;
       const kind = (n.block.category || 'Module').toLowerCase();
-      const headerFill = kind === 'function' ? '#0ea5e9' : '#6366f1';
-      const headerH = 52;
+      const headerFill = isIoInput(n.block) ? '#059669' : (isIoOutput(n.block) ? '#d97706' : (kind === 'function' ? '#0ea5e9' : '#6366f1'));
+      const headerH = isIoInput(n.block) ? 68 : 52;
 
       body += `<rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="10" fill="#ffffff" stroke="#dfe4ee"/>`;
       body += `<rect x="${n.x}" y="${n.y}" width="${w}" height="${headerH}" rx="10" fill="${headerFill}"/>`;
       body += `<rect x="${n.x}" y="${n.y + headerH - 10}" width="${w}" height="10" fill="${headerFill}"/>`;
-      body += `<text x="${n.x + 14}" y="${n.y + 22}" fill="#ffffff" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600">${escapeXml(n.block.name)}</text>`;
-      body += `<text x="${n.x + 14}" y="${n.y + 38}" fill="#ffffff" font-family="IBM Plex Mono, monospace" font-size="10" opacity="0.9">${escapeXml(n.block.path || '')}</text>`;
+      body += `<text x="${n.x + 14}" y="${n.y + 22}" fill="#ffffff" font-family="IBM Plex Sans, sans-serif" font-size="14" font-weight="600">${escapeXml(getNodeDisplayName(n))}</text>`;
+      body += `<text x="${n.x + 14}" y="${n.y + 38}" fill="#ffffff" font-family="IBM Plex Mono, monospace" font-size="10" opacity="0.9">${escapeXml(isIoBlock(n.block) ? n.block.name : (n.block.path || ''))}</text>`;
+      if (isIoInput(n.block)){
+        body += `<text x="${n.x + 14}" y="${n.y + 52}" fill="#ffffff" font-family="IBM Plex Mono, monospace" font-size="11" opacity="0.95">${escapeXml(formatShapeDisplay(n.shape))}</text>`;
+      }
     });
 
     return (
@@ -343,7 +346,58 @@
   }
 
   function formatCategoryName(folder){
+    if (folder.toLowerCase() === 'io') return 'IO';
     return folder.replace(/_/g, ' ');
+  }
+
+  function isIoBlock(blockDef){
+    return blockDef && (blockDef.category === 'IO' || (blockDef.path || '').startsWith('io.'));
+  }
+
+  function isIoInput(blockDef){
+    return isIoBlock(blockDef) && blockDef.path === 'io.input';
+  }
+
+  function isIoOutput(blockDef){
+    return isIoBlock(blockDef) && blockDef.path === 'io.output';
+  }
+
+  function getNodeDisplayName(node){
+    if (isIoBlock(node.block) && node.ioName && node.ioName.trim()){
+      return node.ioName.trim();
+    }
+    return node.block.name;
+  }
+
+  function parseShapeInput(text){
+    const trimmed = (text || '').trim();
+    if (!trimmed) return [];
+    return trimmed.split(',').map(part => {
+      const n = Number(part.trim());
+      if (!Number.isInteger(n) || n <= 0) return null;
+      return n;
+    });
+  }
+
+  function isValidShape(shape){
+    return Array.isArray(shape) && shape.length > 0 && shape.every(n => Number.isInteger(n) && n > 0);
+  }
+
+  function formatShapeDisplay(shape){
+    if (!isValidShape(shape)) return '[B, …]';
+    return '[B, ' + shape.join(', ') + ']';
+  }
+
+  function ioNameTaken(name, excludeNodeId){
+    const trimmed = (name || '').trim();
+    if (!trimmed) return false;
+    const lower = trimmed.toLowerCase();
+    return nodes.some(n =>
+      isIoBlock(n.block) &&
+      n.id !== excludeNodeId &&
+      n.ioName &&
+      n.ioName.trim().toLowerCase() === lower
+    );
   }
 
   function getBlockCategory(block){
@@ -362,7 +416,11 @@
     Object.keys(groups).forEach(k => {
       groups[k].sort((a, b) => a.name.localeCompare(b.name));
     });
-    return Object.keys(groups).sort().reduce((acc, k) => { acc[k] = groups[k]; return acc; }, {});
+    return Object.keys(groups).sort((a, b) => {
+      if (a === 'io') return -1;
+      if (b === 'io') return 1;
+      return a.localeCompare(b);
+    }).reduce((acc, k) => { acc[k] = groups[k]; return acc; }, {});
   }
 
   function attachBlockItem(el, b){
@@ -462,6 +520,7 @@
   }
 
   function getBlockInputs(blockDef){
+    if (isIoInput(blockDef)) return [];
     const fwd = blockDef.forward_arguments || {};
     const tensorInputs = Object.keys(fwd)
       .filter(k => fwd[k].type === 'Tensor')
@@ -473,6 +532,7 @@
   }
 
   function getBlockOutputs(blockDef){
+    if (isIoOutput(blockDef)) return [];
     const outs = Array.isArray(blockDef.output) ? blockDef.output : (blockDef.output ? [blockDef.output] : ['output']);
     return outs.map(name => ({ name }));
   }
@@ -642,6 +702,10 @@
       init_arguments: Object.assign({}, ...Object.keys(blockDef.init_arguments||{}).map(k=>({[k]: blockDef.init_arguments[k].default}))),
       outputs, inputs
     };
+    if (isIoBlock(blockDef)){
+      node.ioName = '';
+      if (isIoInput(blockDef)) node.shape = [];
+    }
     nodes.push(node);
     normalizeNodePorts(node);
     renderNode(node);
@@ -866,6 +930,18 @@
     return document.activeElement === canvas || canvas.contains(document.activeElement);
   }
 
+  function updateIoNodeVisuals(node){
+    const el = nodeElement(node.id);
+    if (!el) return;
+    const nameEl = el.querySelector('.nodeName');
+    if (nameEl) nameEl.textContent = getNodeDisplayName(node);
+    const shapeEl = el.querySelector('.ioShapeDisplay');
+    if (shapeEl && isIoInput(node.block)){
+      shapeEl.textContent = formatShapeDisplay(node.shape);
+      shapeEl.classList.toggle('ioShapeEmpty', !isValidShape(node.shape));
+    }
+  }
+
   function renderNode(node){
     normalizeNodePorts(node);
     const el = document.createElement('div');
@@ -875,15 +951,23 @@
     el.style.top = node.y + 'px';
 
     const kind = (node.block.category || 'Module').toLowerCase();
+    const ioKind = isIoInput(node.block) ? 'io input' : (isIoOutput(node.block) ? 'io output' : kind);
     const header = document.createElement('div');
-    header.className = 'nodeHeader ' + (kind === 'function' ? 'function' : 'module');
+    header.className = 'nodeHeader ' + (ioKind === 'io input' || ioKind === 'io output' ? ioKind : (kind === 'function' ? 'function' : 'module'));
     header.innerHTML = `
       <div class="nodeHeaderTop">
-        <span class="nodeName">${node.block.name}</span>
+        <span class="nodeName">${getNodeDisplayName(node)}</span>
         ${node.saved ? '<span class="savedBadge">saved</span>' : ''}
       </div>
-      <div class="nodePath">${node.block.path || ''}</div>
+      <div class="nodePath">${isIoBlock(node.block) ? node.block.name : (node.block.path || '')}</div>
     `;
+
+    if (isIoInput(node.block)){
+      const shapeRow = document.createElement('div');
+      shapeRow.className = 'ioShapeDisplay' + (isValidShape(node.shape) ? '' : ' ioShapeEmpty');
+      shapeRow.textContent = formatShapeDisplay(node.shape);
+      header.appendChild(shapeRow);
+    }
 
     const ports = document.createElement('div');
     ports.className = 'nodePorts';
@@ -1144,8 +1228,94 @@
   }
 
   function nodeHasRequiredFields(node){
+    if (isIoBlock(node.block)){
+      const name = (node.ioName || '').trim();
+      if (!name || ioNameTaken(name, node.id)) return false;
+      if (isIoInput(node.block) && !isValidShape(node.shape)) return false;
+      return true;
+    }
     const reqs = Object.keys(node.block.init_arguments || {}).filter(k => node.block.init_arguments[k].required === 'True');
     return reqs.every(k => node.init_arguments[k] !== null && node.init_arguments[k] !== '' && node.init_arguments[k] !== undefined);
+  }
+
+  function showIoProps(node, form, saveWarning){
+    const nameRow = document.createElement('div');
+    nameRow.className = 'formRow';
+    const nameLabel = document.createElement('label');
+    nameLabel.innerHTML = 'Name <span class="req">*</span>';
+    const nameInp = document.createElement('input');
+    nameInp.type = 'text';
+    nameInp.placeholder = isIoInput(node.block) ? 'e.g. images' : 'e.g. logits';
+    nameInp.value = node.ioName || '';
+    const nameError = document.createElement('div');
+    nameError.className = 'fieldError';
+    nameError.textContent = 'This name is already used by another IO block';
+    nameRow.appendChild(nameLabel);
+    nameRow.appendChild(nameInp);
+    nameRow.appendChild(nameError);
+    form.appendChild(nameRow);
+
+    let shapeInp = null;
+    let shapePreview = null;
+    let shapeError = null;
+
+    if (isIoInput(node.block)){
+      const shapeRow = document.createElement('div');
+      shapeRow.className = 'formRow';
+      const shapeLabel = document.createElement('label');
+      shapeLabel.innerHTML = 'Shape <span class="req">*</span> <span style="color:var(--text-muted);font-weight:400">(feature dims, comma-separated)</span>';
+      shapeInp = document.createElement('input');
+      shapeInp.type = 'text';
+      shapeInp.placeholder = '3, 224, 224';
+      shapeInp.value = isValidShape(node.shape) ? node.shape.join(', ') : '';
+      shapePreview = document.createElement('div');
+      shapePreview.className = 'shapePreview';
+      shapeError = document.createElement('div');
+      shapeError.className = 'fieldError';
+      shapeError.textContent = 'Enter one or more positive integer dimensions';
+      shapeRow.appendChild(shapeLabel);
+      shapeRow.appendChild(shapeInp);
+      shapeRow.appendChild(shapePreview);
+      shapeRow.appendChild(shapeError);
+      form.appendChild(shapeRow);
+    }
+
+    function syncShapePreview(){
+      if (!shapePreview || !shapeInp) return;
+      const parsed = parseShapeInput(shapeInp.value);
+      const valid = parsed.length > 0 && !parsed.includes(null);
+      shapePreview.textContent = valid ? formatShapeDisplay(parsed) : '[B, …]';
+      shapePreview.classList.toggle('shapePreviewInvalid', !valid);
+      shapeError.classList.toggle('visible', shapeInp.value.trim() !== '' && !valid);
+    }
+
+    function syncNameError(){
+      const trimmed = nameInp.value.trim();
+      const taken = trimmed && ioNameTaken(trimmed, node.id);
+      nameError.classList.toggle('visible', Boolean(taken));
+      nameInp.classList.toggle('inputInvalid', Boolean(taken));
+    }
+
+    function validateNode(){
+      node.ioName = nameInp.value;
+      syncNameError();
+      if (shapeInp){
+        const parsed = parseShapeInput(shapeInp.value);
+        const valid = parsed.length > 0 && !parsed.includes(null);
+        node.shape = valid ? parsed : [];
+        syncShapePreview();
+      }
+      updateIoNodeVisuals(node);
+      if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
+      return nodeHasRequiredFields(node);
+    }
+
+    nameInp.oninput = validateNode;
+    if (shapeInp) shapeInp.oninput = validateNode;
+    syncShapePreview();
+    syncNameError();
+
+    return validateNode;
   }
 
   function allNodesSaved(){
@@ -1171,50 +1341,62 @@
     const form = document.createElement('div');
     const title = document.createElement('div');
     title.className = 'propsTitle';
-    title.innerHTML = `<strong>${node.block.name}</strong><span>${node.block.path || ''}</span>`;
+    title.innerHTML = `<strong>${getNodeDisplayName(node)}</strong><span>${isIoBlock(node.block) ? node.block.name : (node.block.path || '')}</span>`;
     form.appendChild(title);
-
-    const args = node.block.init_arguments || {};
-    const argKeys = Object.keys(args);
-
-    if (!argKeys.length){
-      const empty = document.createElement('p');
-      empty.style.cssText = 'font-size:12px;color:var(--text-muted);margin:0 0 12px';
-      empty.textContent = 'No init arguments for this block.';
-      form.appendChild(empty);
-    }
-
-    argKeys.forEach(k => {
-      const row = document.createElement('div');
-      row.className = 'formRow';
-      const label = document.createElement('label');
-      label.innerHTML = `${k}${args[k].required === 'True' ? ' <span class="req">*</span>' : ' <span style="color:var(--text-muted)">(optional)</span>'}`;
-      const inp = document.createElement('input');
-      inp.type = (typeof args[k].default === 'number') ? 'number' : 'text';
-      inp.value = node.init_arguments[k] != null ? node.init_arguments[k] : (args[k].default != null ? args[k].default : '');
-      inp.oninput = () => { node.init_arguments[k] = inp.value; validateNode(); };
-      row.appendChild(label);
-      row.appendChild(inp);
-      form.appendChild(row);
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'propsActions';
 
     const saveWarning = document.createElement('div');
     saveWarning.className = 'saveWarning';
     saveWarning.textContent = 'Required fields are not filled';
 
+    let validateNode = () => nodeHasRequiredFields(node);
+
+    if (isIoBlock(node.block)){
+      validateNode = showIoProps(node, form, saveWarning);
+    } else {
+      const args = node.block.init_arguments || {};
+      const argKeys = Object.keys(args);
+
+      if (!argKeys.length){
+        const empty = document.createElement('p');
+        empty.style.cssText = 'font-size:12px;color:var(--text-muted);margin:0 0 12px';
+        empty.textContent = 'No init arguments for this block.';
+        form.appendChild(empty);
+      }
+
+      argKeys.forEach(k => {
+        const row = document.createElement('div');
+        row.className = 'formRow';
+        const label = document.createElement('label');
+        label.innerHTML = `${k}${args[k].required === 'True' ? ' <span class="req">*</span>' : ' <span style="color:var(--text-muted)">(optional)</span>'}`;
+        const inp = document.createElement('input');
+        inp.type = (typeof args[k].default === 'number') ? 'number' : 'text';
+        inp.value = node.init_arguments[k] != null ? node.init_arguments[k] : (args[k].default != null ? args[k].default : '');
+        inp.oninput = () => {
+          node.init_arguments[k] = inp.value;
+          if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
+        };
+        row.appendChild(label);
+        row.appendChild(inp);
+        form.appendChild(row);
+      });
+
+      validateNode = () => nodeHasRequiredFields(node);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'propsActions';
+
     const saveBtn = document.createElement('button');
     saveBtn.className = 'primary';
     saveBtn.innerText = 'Save Node';
     saveBtn.onclick = () => {
-      if (!nodeHasRequiredFields(node)){
+      if (!validateNode() || !nodeHasRequiredFields(node)){
         saveWarning.classList.add('visible');
         return;
       }
       saveWarning.classList.remove('visible');
       node.saved = true;
+      updateIoNodeVisuals(node);
       const nel = nodeElement(node.id);
       if (nel){
         const top = nel.querySelector('.nodeHeaderTop');
@@ -1238,10 +1420,6 @@
     form.appendChild(actions);
     form.appendChild(saveWarning);
     propsEl.appendChild(form);
-
-    function validateNode(){
-      if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
-    }
   }
 
   function deleteNode(id){

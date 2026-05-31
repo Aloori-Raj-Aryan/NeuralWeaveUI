@@ -386,7 +386,43 @@ def create_all_blocks(
             failed.append((rel_path, str(exc)))
             print(f"error: {rel_path}: {exc}", file=sys.stderr)
 
+    write_io_blocks(root)
+    print("Wrote blocks/io/input.json")
+    print("Wrote blocks/io/output.json")
+
     return ok, failed
+
+
+IO_BLOCKS: Tuple[Tuple[str, Dict[str, Any]], ...] = (
+    (
+        "blocks/io/input.json",
+        {
+            "name": "Input",
+            "category": "IO",
+            "path": "io.input",
+            "forward_arguments": {},
+            "output": ["tensor"],
+        },
+    ),
+    (
+        "blocks/io/output.json",
+        {
+            "name": "Output",
+            "category": "IO",
+            "path": "io.output",
+            "forward_arguments": {
+                "tensor": {"type": "Tensor", "required": "True"},
+            },
+            "output": [],
+        },
+    ),
+)
+
+
+def write_io_blocks(repo_root: Path) -> None:
+    """Write static IO block definitions (not derived from PyTorch introspection)."""
+    for rel_path, spec in IO_BLOCKS:
+        write_block_json(spec, repo_root / rel_path)
 
 
 def main(argv: Optional[List[str]] = None) -> int:

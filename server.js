@@ -190,6 +190,25 @@ function parseCreateBlocksResult(stdout){
   return { ok: 0, failed: 0 };
 }
 
+const IO_BLOCKS = [
+  {
+    name: 'Input',
+    category: 'IO',
+    path: 'io.input',
+    __file: 'io/input.json',
+    forward_arguments: {},
+    output: ['tensor'],
+  },
+  {
+    name: 'Output',
+    category: 'IO',
+    path: 'io.output',
+    __file: 'io/output.json',
+    forward_arguments: { tensor: { type: 'Tensor', required: 'True' } },
+    output: [],
+  },
+];
+
 async function readBlocks(){
   const base = BLOCKS_DIR;
   try {
@@ -220,6 +239,12 @@ async function readBlocks(){
   }
 
   await walk(base);
+
+  const paths = new Set(results.map(b => b.path));
+  IO_BLOCKS.forEach(b => {
+    if (!paths.has(b.path)) results.push(Object.assign({}, b));
+  });
+
   return results;
 }
 

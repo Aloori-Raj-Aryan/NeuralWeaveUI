@@ -272,6 +272,7 @@ html, body, #app {
 
 .blockItemKind.module { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
 .blockItemKind.function { background: rgba(14, 165, 233, 0.2); color: #7dd3fc; }
+.blockItemKind.io { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
 
 .paletteFooter {
   padding: 12px;
@@ -447,6 +448,25 @@ html, body, #app {
 
 .nodeHeader.module { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; }
 .nodeHeader.function { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: #fff; }
+.nodeHeader.io.input { background: linear-gradient(135deg, #059669, #047857); color: #fff; }
+.nodeHeader.io.output { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+
+.ioShapeDisplay {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-top: 2px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  align-self: flex-start;
+}
+
+.ioShapeDisplay.ioShapeEmpty {
+  opacity: 0.75;
+  font-style: italic;
+}
 
 .nodeHeaderTop {
   display: flex;
@@ -713,6 +733,36 @@ button.secondary:hover {
 }
 
 .saveWarning.visible { display: block; }
+
+.fieldError {
+  display: none;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #f87171;
+}
+
+.fieldError.visible { display: block; }
+
+.formRow input.inputInvalid {
+  border-color: #f87171;
+}
+
+.shapePreview {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.shapePreview.shapePreviewInvalid {
+  opacity: 0.65;
+  font-style: italic;
+}
 
 .hidden { display: none !important; }
 
