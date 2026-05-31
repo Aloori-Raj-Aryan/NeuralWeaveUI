@@ -567,6 +567,19 @@
     return span;
   }
 
+  const INIT_ARG_TEXT_KEYS = new Set([
+    'kernel_size', 'stride', 'padding', 'dilation', 'output_padding',
+    'output_size', 'padding_mode', 'size', 'scale_factor',
+  ]);
+
+  function initArgUsesTextInput(key, defaultVal) {
+    if (INIT_ARG_TEXT_KEYS.has(key)) return true;
+    if (/(size|stride|padding|dilation|dim|shape)/i.test(key)) return true;
+    if (defaultVal === null || defaultVal === undefined) return true;
+    if (typeof defaultVal === 'string') return true;
+    return false;
+  }
+
   function ioNameTaken(name, excludeNodeId){
     const trimmed = (name || '').trim();
     if (!trimmed) return false;
@@ -1559,8 +1572,11 @@
         const label = document.createElement('label');
         label.innerHTML = `${k}${args[k].required === 'True' ? ' <span class="req">*</span>' : ' <span style="color:var(--text-muted)">(optional)</span>'}`;
         const inp = document.createElement('input');
-        inp.type = (typeof args[k].default === 'number') ? 'number' : 'text';
+        inp.type = initArgUsesTextInput(k, args[k].default) ? 'text' : 'number';
         inp.value = node.init_arguments[k] != null ? node.init_arguments[k] : (args[k].default != null ? args[k].default : '');
+        if (k === 'kernel_size') inp.placeholder = '3 or (3, 5)';
+        if (k === 'stride') inp.placeholder = '1 or (2, 2)';
+        if (k === 'padding') inp.placeholder = '0, (1, 1), same, or valid';
         inp.oninput = () => {
           node.init_arguments[k] = inp.value;
           if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');

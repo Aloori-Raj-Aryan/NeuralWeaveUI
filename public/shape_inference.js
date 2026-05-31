@@ -43,7 +43,15 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
-  function parseDimPair(value, fallback) {
+  function stripQuotes(text) {
+    let t = String(text).trim();
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      return t.slice(1, -1).trim();
+    }
+    return t;
+  }
+
+  function parseDimValue(value, fallback) {
     if (Array.isArray(value) && value.length) {
       const nums = value.map(v => parseNum(v, null)).filter(n => n !== null);
       if (!nums.length) return fallback;
@@ -51,14 +59,16 @@
     }
     if (value === null || value === undefined || value === '') return fallback;
 
-    let text = String(value).trim();
-    if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
-      text = text.slice(1, -1).trim();
-    }
+    const text = stripQuotes(String(value).trim());
+    if (!text) return fallback;
 
     if ((text.startsWith('(') && text.endsWith(')')) ||
         (text.startsWith('[') && text.endsWith(']'))) {
-      const parts = text.slice(1, -1).split(/[,\s]+/).filter(Boolean)
+      const inner = text.slice(1, -1).trim();
+      if (!inner) return fallback;
+      const parts = inner.split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
         .map(s => parseNum(s, null))
         .filter(n => n !== null);
       if (!parts.length) return fallback;
@@ -66,18 +76,32 @@
     }
 
     if (/[,\s]/.test(text)) {
-      const parts = text.split(/[,\s]+/).filter(Boolean)
+      const parts = text.split(/[,\s]+/)
+        .filter(Boolean)
         .map(s => parseNum(s, null))
         .filter(n => n !== null);
       if (!parts.length) return fallback;
       return parts.length === 1 ? parts[0] : parts;
     }
 
-    return parseNum(text, fallback);
+    const n = parseNum(text, null);
+    return n !== null ? n : fallback;
+  }
+
+  function parsePaddingSpec(value, fallback) {
+    if (value === null || value === undefined || value === '') {
+      return { type: 'numeric', dims: fallback };
+    }
+    const text = stripQuotes(String(value).trim()).toLowerCase();
+    if (text === 'same') return { type: 'same' };
+    if (text === 'valid') return { type: 'valid' };
+    return { type: 'numeric', dims: parseDimValue(value, fallback) };
   }
 
   function normalizeDims(value, fallback, spatialRank) {
-    const parsed = parseDimPair(value, fallback);
+    const parsed = typeof value === 'object' && value && value.type
+      ? value.dims
+      : parseDimValue(value, fallback);
     if (parsed === null || parsed === undefined) {
       return Array(spatialRank).fill(fallback);
     }
@@ -96,34 +120,60 @@
     return dims[Math.min(axis, dims.length - 1)];
   }
 
+  function getInitRaw(node, key) {
+    return node.init_arguments && node.init_arguments[key];
+  }
+
   function getInit(node, key, fallback) {
-    return parseNum(node.init_arguments && node.init_arguments[key], fallback);
+    return parseNum(getInitRaw(node, key), fallback);
   }
 
-  function getInitPair(node, key, fallback) {
-    const raw = node.init_arguments && node.init_arguments[key];
-    return parseDimPair(raw, fallback);
+  function getInitDim(node, key, fallback) {
+    return parseDimValue(getInitRaw(node, key), fallback);
   }
 
-  function spatialOut(inSize, kernel, stride, padding, dilation) {
-    const k = parseNum(kernel, 1);
-    const s = parseNum(stride, 1);
-    const p = parseNum(padding, 0);
-    const d = parseNum(dilation, 1);
+  function spatialOutputSize(inSize, kernel, stride, dilation, paddingSpec, padAmount) {
     const size = parseNum(inSize, null);
     if (size === null || size <= 0) return null;
+
+    const k = parseNum(kernel, 1);
+    const s = parseNum(stride, 1);
+    const d = parseNum(dilation, 1);
+
+    if (paddingSpec.type === 'same') {
+      if (s !== 1) return 'same_stride_error';
+      return size;
+    }
+    if (paddingSpec.type === 'valid') {
+      return Math.floor((size - d * (k - 1) - 1) / s + 1);
+    }
+
+    const p = parseNum(padAmount, 0);
     return Math.floor((size + 2 * p - d * (k - 1) - 1) / s + 1);
   }
 
-  function spatialOutTranspose(inSize, kernel, stride, padding, dilation, outputPadding) {
-    const k = parseNum(kernel, 1);
-    const s = parseNum(stride, 1);
-    const p = parseNum(padding, 0);
-    const d = parseNum(dilation, 1);
-    const op = parseNum(outputPadding, 0);
+  function spatialOutTransposeSize(inSize, kernel, stride, paddingSpec, padAmount, dilation, outputPadding) {
     const size = parseNum(inSize, null);
     if (size === null || size <= 0) return null;
+
+    const k = parseNum(kernel, 1);
+    const s = parseNum(stride, 1);
+    const d = parseNum(dilation, 1);
+    const op = parseNum(outputPadding, 0);
+
+    if (paddingSpec.type === 'same' || paddingSpec.type === 'valid') {
+      return null;
+    }
+
+    const p = parseNum(padAmount, 0);
     return (size - 1) * s - 2 * p + d * (k - 1) + op + 1;
+  }
+
+  function validateDimList(dims, label) {
+    if (!dims || dims.some(d => d === null || d === undefined || d <= 0 || !Number.isFinite(d))) {
+      return fail(`${label} must be a positive int or tuple of ints`);
+    }
+    return null;
   }
 
   function normalizePair(value, fallback) {
@@ -209,29 +259,53 @@
     const outChannels = getInit(node, 'out_channels', null);
     if (outChannels === null || outChannels <= 0) return ok(null);
 
-    const kernel = getInitPair(node, 'kernel_size', 1);
-    const stride = getInitPair(node, 'stride', 1);
-    const padding = getInitPair(node, 'padding', 0);
-    const dilation = getInitPair(node, 'dilation', 1);
-    const outputPadding = transpose ? getInitPair(node, 'output_padding', 0) : 0;
+    const kernels = normalizeDims(getInitDim(node, 'kernel_size', null), null, spatialRank);
+    if (kernels.every(d => d === null || d === undefined)) return ok(null);
+    const kernelErr = validateDimList(kernels, 'kernel_size');
+    if (kernelErr) return kernelErr;
 
-    const kernels = normalizeDims(kernel, 1, spatialRank);
-    const strides = normalizeDims(stride, 1, spatialRank);
-    const paddings = normalizeDims(padding, 0, spatialRank);
-    const dilations = normalizeDims(dilation, 1, spatialRank);
-    const outPads = normalizeDims(outputPadding, 0, spatialRank);
-    const fn = transpose ? spatialOutTranspose : spatialOut;
+    const strides = normalizeDims(getInitDim(node, 'stride', 1), 1, spatialRank);
+    const strideErr = validateDimList(strides, 'stride');
+    if (strideErr) return strideErr;
+
+    const paddingSpec = parsePaddingSpec(getInitRaw(node, 'padding'), 0);
+    if (paddingSpec.type === 'same' && strides.some(s => s !== 1)) {
+      return fail("padding='same' only supports stride 1");
+    }
+    const paddings = paddingSpec.type === 'numeric'
+      ? normalizeDims(paddingSpec.dims, 0, spatialRank)
+      : null;
+
+    const dilations = normalizeDims(getInitDim(node, 'dilation', 1), 1, spatialRank);
+    const dilationErr = validateDimList(dilations, 'dilation');
+    if (dilationErr) return dilationErr;
+
+    const outPads = normalizeDims(getInitDim(node, 'output_padding', 0), 0, spatialRank);
 
     const out = [input[0], outChannels];
     for (let i = 0; i < spatialRank; i += 1) {
-      const next = fn(
-        input[2 + i],
-        dimAt(kernels, i),
-        dimAt(strides, i),
-        dimAt(paddings, i),
-        dimAt(dilations, i),
-        transpose ? dimAt(outPads, i) : 0
-      );
+      const next = transpose
+        ? spatialOutTransposeSize(
+          input[2 + i],
+          dimAt(kernels, i),
+          dimAt(strides, i),
+          paddingSpec,
+          paddings ? dimAt(paddings, i) : 0,
+          dimAt(dilations, i),
+          dimAt(outPads, i)
+        )
+        : spatialOutputSize(
+          input[2 + i],
+          dimAt(kernels, i),
+          dimAt(strides, i),
+          dimAt(dilations, i),
+          paddingSpec,
+          paddings ? dimAt(paddings, i) : 0
+        );
+
+      if (next === 'same_stride_error') {
+        return fail("padding='same' only supports stride 1");
+      }
       if (next === null || next <= 0) {
         return fail(`Invalid output size for ${formatShape(input)} with kernel/stride/padding`);
       }
@@ -260,24 +334,34 @@
     const rankErr = expectRank(input, spatialRank + 2);
     if (rankErr) return rankErr;
 
-    const kernel = getInitPair(node, 'kernel_size', 1);
-    const stride = getInitPair(node, 'stride', null);
-    const padding = getInitPair(node, 'padding', 0);
-    const dilation = getInitPair(node, 'dilation', 1);
+    const kernels = normalizeDims(getInitDim(node, 'kernel_size', null), null, spatialRank);
+    if (kernels.every(d => d === null || d === undefined)) return ok(null);
+    const kernelErr = validateDimList(kernels, 'kernel_size');
+    if (kernelErr) return kernelErr;
 
-    const kernels = normalizeDims(kernel, 1, spatialRank);
-    const strides = stride === null ? kernels : normalizeDims(stride, 1, spatialRank);
-    const paddings = normalizeDims(padding, 0, spatialRank);
-    const dilations = normalizeDims(dilation, 1, spatialRank);
+    const strideRaw = getInitDim(node, 'stride', null);
+    const strides = strideRaw === null
+      ? kernels.slice()
+      : normalizeDims(strideRaw, 1, spatialRank);
+    const strideErr = validateDimList(strides, 'stride');
+    if (strideErr) return strideErr;
+
+    const paddingSpec = parsePaddingSpec(getInitRaw(node, 'padding'), 0);
+    if (paddingSpec.type === 'same' || paddingSpec.type === 'valid') {
+      return fail(`padding='${paddingSpec.type}' is only supported on Conv layers`);
+    }
+    const paddings = normalizeDims(paddingSpec.dims, 0, spatialRank);
+    const dilations = normalizeDims(getInitDim(node, 'dilation', 1), 1, spatialRank);
 
     const out = input.slice(0, 2);
     for (let i = 0; i < spatialRank; i += 1) {
-      const next = spatialOut(
+      const next = spatialOutputSize(
         input[2 + i],
         dimAt(kernels, i),
         dimAt(strides, i),
-        dimAt(paddings, i),
-        dimAt(dilations, i)
+        dimAt(dilations, i),
+        paddingSpec,
+        dimAt(paddings, i)
       );
       if (next === null || next <= 0) {
         return fail(`Invalid pool output size for ${formatShape(input)}`);
@@ -294,7 +378,7 @@
     const rankErr = expectRank(input, spatialRank + 2);
     if (rankErr) return rankErr;
 
-    const target = getInitPair(node, 'output_size', null);
+    const target = getInitDim(node, 'output_size', null);
     if (target === null) return ok(null);
     const sizes = normalizeDims(target, 1, spatialRank);
     const out = input.slice(0, 2);
@@ -380,8 +464,8 @@
   function upsampleRule(node, inputShapes) {
     const input = inputShapes[0];
     if (!isKnownShape(input) || input.length < 3) return ok(null);
-    const scale = getInitPair(node, 'scale_factor', null);
-    const size = getInitPair(node, 'size', null);
+    const scale = getInitDim(node, 'scale_factor', null);
+    const size = getInitDim(node, 'size', null);
     const out = input.slice();
     if (size !== null) {
       const sizes = normalizeDims(size, null, input.length === 4 ? 2 : 1);
