@@ -67,11 +67,11 @@ function sessionDir(sessionId){
   return path.join(GRAPHS_ROOT, sessionId);
 }
 
-function safeGraphFilename(name){
+function safeModelFilename(name){
   const base = path.basename(String(name || ''));
-  if (!base || base === '.' || base === '..') throw new Error('Invalid graph name');
-  const safe = base.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.json$/i, '');
-  return safe.endsWith('.svg') ? safe : `${safe}.svg`;
+  if (!base || base === '.' || base === '..') throw new Error('Invalid model name');
+  const safe = base.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.py$/i, '');
+  return `${safe}.py`;
 }
 
 async function copyDirRecursive(src, dest){
@@ -436,13 +436,13 @@ app.get('/api/graphs', async (req, res) => {
       entries = [];
     }
 
-    const graphs = [];
-    for (const name of entries.filter(f => f.endsWith('.svg'))){
+    const models = [];
+    for (const name of entries.filter(f => f.endsWith('.py'))){
       const stat = await fs.stat(path.join(dir, name));
-      graphs.push({ name, updatedAt: stat.mtime.toISOString() });
+      models.push({ name, updatedAt: stat.mtime.toISOString() });
     }
-    graphs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    res.json({ ok: true, graphs });
+    models.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    res.json({ ok: true, graphs: models, models });
   } catch (err){
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -453,10 +453,10 @@ app.get('/api/graphs/:name', async (req, res) => {
     const sessionId = await requireSession(req, res);
     if (!sessionId) return;
 
-    const filename = safeGraphFilename(req.params.name);
+    const filename = safeModelFilename(req.params.name);
     const filePath = path.join(sessionDir(sessionId), filename);
     const content = await fs.readFile(filePath, 'utf8');
-    res.type('image/svg+xml');
+    res.type('text/plain; charset=utf-8');
     res.send(content);
   } catch (err){
     if (err.code === 'ENOENT') return res.status(404).json({ ok: false, error: 'Graph not found' });
@@ -469,14 +469,14 @@ app.post('/api/save_graph', async (req, res) => {
     const sessionId = await requireSession(req, res);
     if (!sessionId) return;
 
-    const svg = req.body && req.body.svg;
-    if (!svg || typeof svg !== 'string'){
-      return res.status(400).json({ ok: false, error: 'svg content is required' });
+    const source = req.body && (req.body.source || req.body.python);
+    if (!source || typeof source !== 'string'){
+      return res.status(400).json({ ok: false, error: 'Python source is required' });
     }
 
-    const filename = safeGraphFilename(req.body.name || `graph-${Date.now()}`);
+    const filename = safeModelFilename(req.body.name || `model-${Date.now()}`);
     const dest = path.join(sessionDir(sessionId), filename);
-    await fs.writeFile(dest, svg, 'utf8');
+    await fs.writeFile(dest, source, 'utf8');
     res.json({ ok: true, name: filename });
   } catch (err){
     res.status(500).json({ ok: false, error: err.message });
@@ -488,7 +488,7 @@ app.delete('/api/graphs/:name', async (req, res) => {
     const sessionId = await requireSession(req, res);
     if (!sessionId) return;
 
-    const filename = safeGraphFilename(req.params.name);
+    const filename = safeModelFilename(req.params.name);
     await fs.unlink(path.join(sessionDir(sessionId), filename));
     res.json({ ok: true });
   } catch (err){

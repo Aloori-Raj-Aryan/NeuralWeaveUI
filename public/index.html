@@ -79,13 +79,13 @@
         </div>
         <div id="blocksList"></div>
         <div class="savedGraphsSection">
-          <div class="savedGraphsHeader">Saved in this session</div>
+          <div class="savedGraphsHeader">Saved models</div>
           <div id="savedGraphsList" class="savedGraphsList"></div>
         </div>
         <div class="paletteFooter">
           <div id="sessionLabel" class="sessionLabel"></div>
           <button type="button" id="validateShapesBtn" class="secondary validateShapesBtn">Validate shapes</button>
-          <button id="exportBtn" class="primary">Save as SVG</button>
+          <button id="exportBtn" class="primary">Export model</button>
         </div>
       </aside>
       <main id="canvasWrap">
@@ -114,6 +114,7 @@
   </div>
 
   <script src="shape_inference.js"></script>
+  <script src="model_codegen.js"></script>
   <script src="home.js"></script>
   <script src="app.js"></script>
 </body>

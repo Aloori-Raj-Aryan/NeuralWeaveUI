@@ -170,21 +170,21 @@
     updateSessionLabel();
   }
 
-  async function suggestGraphName(){
+  async function suggestModelName(){
     const res = await apiFetch('/api/graphs');
     const data = await readJsonResponse(res);
     const names = new Set((data.ok && data.graphs ? data.graphs : []).map(g => g.name));
     let i = 1;
-    let candidate = 'graph-1.svg';
+    let candidate = 'model-1.py';
     while (names.has(candidate)){
       i += 1;
-      candidate = `graph-${i}.svg`;
+      candidate = `model-${i}.py`;
     }
-    return candidate.replace(/\.svg$/i, '');
+    return candidate.replace(/\.py$/i, '');
   }
 
-  async function graphNameExists(name){
-    const filename = name.toLowerCase().endsWith('.svg') ? name : `${name}.svg`;
+  async function modelNameExists(name){
+    const filename = name.toLowerCase().endsWith('.py') ? name : `${name}.py`;
     const res = await apiFetch('/api/graphs');
     const data = await readJsonResponse(res);
     if (!data.ok || !data.graphs) return false;
@@ -205,7 +205,7 @@
   function renderSavedGraphs(graphs){
     savedGraphsListEl.innerHTML = '';
     if (!graphs.length){
-      savedGraphsListEl.innerHTML = '<div class="savedGraphsEmpty">No saved graphs in this session</div>';
+      savedGraphsListEl.innerHTML = '<div class="savedGraphsEmpty">No saved models in this session</div>';
       return;
     }
     graphs.forEach(g => {
@@ -215,8 +215,8 @@
       const loadBtn = document.createElement('button');
       loadBtn.type = 'button';
       loadBtn.textContent = g.name;
-      loadBtn.title = `View ${g.name}`;
-      loadBtn.onclick = () => viewSavedGraph(g.name);
+      loadBtn.title = `Download ${g.name}`;
+      loadBtn.onclick = () => downloadSavedModel(g.name);
 
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
@@ -251,17 +251,31 @@
     updateExportButtonState();
   }
 
-  async function viewSavedGraph(name){
+  async function downloadSavedModel(name){
     const res = await apiFetch(`/api/graphs/${encodeURIComponent(name)}`);
     if (!res.ok){
       const data = await readJsonResponse(res).catch(() => ({}));
-      alert('Failed to open graph: ' + (data.error || res.statusText));
+      alert('Failed to download model: ' + (data.error || res.statusText));
       return;
     }
-    const blob = await res.blob();
+    const source = await res.text();
+    const blob = new Blob([source], { type: 'text/x-python' });
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank', 'noopener');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name.endsWith('.py') ? name : `${name}.py`;
+    link.click();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  function buildModelSource(className){
+    if (!window.NWUI_codegen) {
+      throw new Error('Model code generator failed to load.');
+    }
+    return window.NWUI_codegen.buildModelSource(
+      { nodes, connections },
+      { className, torchVersion: torchVersion ? torchVersion.id : null }
+    );
   }
 
   function escapeXml(text){
@@ -1520,7 +1534,7 @@
 
   function updateExportButtonState(){
     exportBtn.disabled = !allNodesSaved();
-    exportBtn.title = allNodesSaved() ? '' : 'Save all nodes before exporting SVG';
+    exportBtn.title = allNodesSaved() ? '' : 'Save all nodes before exporting the model';
   }
 
   function ensureArrowMarker(){
@@ -1825,16 +1839,18 @@
 
   exportBtn.onclick = async () => {
     if (!allNodesSaved()){
-      alert('All blocks must be saved before saving the graph.');
+      alert('All blocks must be saved before exporting the model.');
       return;
     }
-    let defaultName = 'graph-1';
+
+    let defaultName = 'model-1';
     try {
-      defaultName = await suggestGraphName();
+      defaultName = await suggestModelName();
     } catch (e) { /* use fallback */ }
 
-    let promptMessage = 'What should the SVG file be named?';
+    let promptMessage = 'What should the Python file be named?';
     let filename = null;
+    let className = null;
 
     while (!filename){
       const name = prompt(promptMessage, defaultName);
@@ -1846,32 +1862,42 @@
         continue;
       }
 
-      const candidate = trimmed.toLowerCase().endsWith('.svg') ? trimmed : `${trimmed}.svg`;
-      if (await graphNameExists(candidate)){
+      const candidate = trimmed.toLowerCase().endsWith('.py') ? trimmed : `${trimmed}.py`;
+      if (await modelNameExists(candidate)){
         promptMessage = `"${candidate}" already exists in this session. Enter a different name:`;
-        defaultName = candidate.replace(/\.svg$/i, '');
+        defaultName = candidate.replace(/\.py$/i, '');
         continue;
       }
 
       filename = candidate;
+      className = window.NWUI_codegen
+        ? window.NWUI_codegen.toClassName(filename)
+        : 'NeuralWeaveModel';
     }
 
-    const svg = buildGraphSvg();
+    let source;
+    try {
+      source = buildModelSource(className);
+    } catch (err){
+      alert('Could not generate model: ' + err.message);
+      return;
+    }
+
     apiFetch('/api/save_graph', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ svg, name: filename })
+      body: JSON.stringify({ source, name: filename })
     })
       .then(r => r.json())
       .then(j => {
         if (j.ok){
-          alert('Saved as ' + j.name);
+          alert('Exported ' + j.name);
           fetchSavedGraphs();
         } else {
-          alert('Save failed: ' + (j.error || 'unknown error'));
+          alert('Export failed: ' + (j.error || 'unknown error'));
         }
       })
-      .catch(e => { alert('Save failed: ' + e.message); });
+      .catch(e => { alert('Export failed: ' + e.message); });
   };
 
   async function boot(versionMeta){
