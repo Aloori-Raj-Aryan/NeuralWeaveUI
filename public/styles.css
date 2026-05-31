@@ -277,6 +277,13 @@ html, body, #app {
 .paletteFooter {
   padding: 12px;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.validateShapesBtn {
+  width: 100%;
 }
 
 .sessionLabel {
@@ -436,6 +443,28 @@ html, body, #app {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), var(--shadow-node);
 }
 
+.node.shapeErrorState {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.22), var(--shadow-node);
+}
+
+.node.selected.shapeErrorState {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.28), var(--shadow-node);
+}
+
+.nodeShapeError {
+  margin: 0 10px 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
 .nodeHeader {
   padding: 10px 14px;
   border-top-left-radius: calc(var(--radius) - 1px);
@@ -532,6 +561,16 @@ html, body, #app {
 .portShape.portShapeUnknown {
   color: var(--text-subtle);
   font-style: italic;
+}
+
+.portShape.portShapeBlocked {
+  color: #cbd5e1;
+}
+
+.portShape.portShapeError {
+  color: #ef4444;
+  font-style: normal;
+  font-weight: 600;
 }
 
 .portRow.outputPort .portShape {
@@ -751,6 +790,17 @@ button.secondary:hover {
 }
 
 .saveWarning.visible { display: block; }
+
+.propsShapeError {
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.4;
+}
 
 .fieldError {
   display: none;

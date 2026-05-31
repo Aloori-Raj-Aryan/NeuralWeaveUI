@@ -8,6 +8,7 @@
   const propsEl = document.getElementById('props');
   const propsEmpty = document.getElementById('propsEmpty');
   const exportBtn = document.getElementById('exportBtn');
+  const validateShapesBtn = document.getElementById('validateShapesBtn');
   const blockSearchInput = document.getElementById('blockSearch');
   const searchDropdown = document.getElementById('searchDropdown');
   const searchResults = document.getElementById('searchResults');
@@ -246,7 +247,7 @@
     cancelBlockPlacement();
     resizeSvgLayer();
     updateConnections();
-    recomputeShapes();
+    invalidateShapes();
     updateExportButtonState();
   }
 
@@ -395,14 +396,128 @@
     return '[' + shape.join(', ') + ']';
   }
 
-  function recomputeShapes(){
-    if (window.NWUI_shape) window.NWUI_shape.propagateShapes(nodes, connections);
+  let lastShapeErrorNodeId = null;
+  let shapesCalculated = false;
+
+  function invalidateShapes(){
+    shapesCalculated = false;
+    lastShapeErrorNodeId = null;
+    nodes.forEach(node => {
+      node.inputShapes = node.inputs.map(() => null);
+      node.outputShapes = node.outputs.map(() => null);
+      node.shapeError = null;
+    });
     nodes.forEach(updateNodeShapeDisplay);
+    const propsErr = propsEl.querySelector('.propsShapeError');
+    if (propsErr) propsErr.remove();
+    updateValidateShapesButton();
+  }
+
+  function updateValidateShapesButton(){
+    if (!validateShapesBtn) return;
+    validateShapesBtn.disabled = !nodes.length;
+    validateShapesBtn.textContent = shapesCalculated ? 'Revalidate shapes' : 'Validate shapes';
+  }
+
+  function validateShapes(){
+    if (!nodes.length || !window.NWUI_shape) return;
+    shapesCalculated = true;
+    recomputeShapes();
+    updateValidateShapesButton();
+  }
+
+  function recomputeShapes(){
+    let firstErrorNode = null;
+    if (window.NWUI_shape) {
+      const result = window.NWUI_shape.propagateShapes(nodes, connections);
+      firstErrorNode = result && result.firstErrorNode ? result.firstErrorNode : null;
+    }
+    nodes.forEach(updateNodeShapeDisplay);
+
+    if (selectedNodeIds.size === 1){
+      const selected = getSelectedNodes()[0];
+      const propsErr = propsEl.querySelector('.propsShapeError');
+      if (selected && selected.shapeError){
+        if (propsErr) propsErr.textContent = selected.shapeError;
+        else updatePropsForSelection();
+      } else if (propsErr) {
+        propsErr.remove();
+      }
+    }
+
+    if (firstErrorNode){
+      if (firstErrorNode.id !== lastShapeErrorNodeId){
+        lastShapeErrorNodeId = firstErrorNode.id;
+        focusNode(firstErrorNode);
+      }
+    } else {
+      lastShapeErrorNodeId = null;
+    }
+  }
+
+  function focusNode(node){
+    if (!node) return;
+    selectSingleNode(node);
+    const bounds = getNodeBounds(node);
+    const centerX = (bounds.x + bounds.w / 2) * canvasZoom;
+    const centerY = (bounds.y + bounds.h / 2) * canvasZoom;
+    canvas.scrollLeft = Math.max(0, centerX - canvas.clientWidth / 2);
+    canvas.scrollTop = Math.max(0, centerY - canvas.clientHeight / 2);
   }
 
   function updateNodeShapeDisplay(node){
     const el = nodeElement(node.id);
     if (!el) return;
+
+    if (!shapesCalculated){
+      el.classList.remove('shapeErrorState');
+      const errorEl = el.querySelector('.nodeShapeError');
+      if (errorEl) errorEl.hidden = true;
+
+      node.inputs.forEach((_inp, idx) => {
+        const shapeEl = el.querySelector(`.portRow.inputPort[data-input="${idx}"] .portShape`);
+        if (shapeEl){
+          shapeEl.textContent = '[B, …]';
+          shapeEl.classList.add('portShapeUnknown');
+          shapeEl.classList.remove('portShapeBlocked', 'portShapeError');
+        }
+      });
+
+      node.outputs.forEach((_out, idx) => {
+        const shapeEl = el.querySelector(`.portRow.outputPort[data-out="${idx}"] .portShape`);
+        if (shapeEl){
+          shapeEl.textContent = '[B, …]';
+          shapeEl.classList.add('portShapeUnknown');
+          shapeEl.classList.remove('portShapeError');
+        }
+      });
+
+      if (isIoInput(node.block)){
+        const shapeRow = el.querySelector('.ioShapeDisplay');
+        if (shapeRow){
+          shapeRow.textContent = formatShapeDisplay(node.shape);
+          shapeRow.classList.toggle('ioShapeEmpty', !isValidShape(node.shape));
+        }
+      }
+      return;
+    }
+
+    el.classList.toggle('shapeErrorState', Boolean(node.shapeError));
+
+    let errorEl = el.querySelector('.nodeShapeError');
+    if (node.shapeError){
+      if (!errorEl){
+        errorEl = document.createElement('div');
+        errorEl.className = 'nodeShapeError';
+        const ports = el.querySelector('.nodePorts');
+        if (ports) el.insertBefore(errorEl, ports);
+        else el.appendChild(errorEl);
+      }
+      errorEl.textContent = node.shapeError;
+      errorEl.hidden = false;
+    } else if (errorEl) {
+      errorEl.hidden = true;
+    }
 
     node.inputs.forEach((_inp, idx) => {
       const shapeEl = el.querySelector(`.portRow.inputPort[data-input="${idx}"] .portShape`);
@@ -410,6 +525,7 @@
         const shape = node.inputShapes && node.inputShapes[idx];
         shapeEl.textContent = formatPortShape(shape);
         shapeEl.classList.toggle('portShapeUnknown', !shape || !window.NWUI_shape || !window.NWUI_shape.isKnownShape(shape));
+        shapeEl.classList.toggle('portShapeBlocked', !shape && hasConnectionTo(node.id, idx));
       }
     });
 
@@ -417,21 +533,31 @@
       const shapeEl = el.querySelector(`.portRow.outputPort[data-out="${idx}"] .portShape`);
       if (shapeEl){
         const shape = node.outputShapes && node.outputShapes[idx];
-        shapeEl.textContent = formatPortShape(shape);
-        shapeEl.classList.toggle('portShapeUnknown', !shape || !window.NWUI_shape || !window.NWUI_shape.isKnownShape(shape));
+        shapeEl.textContent = node.shapeError ? '—' : formatPortShape(shape);
+        shapeEl.classList.toggle('portShapeUnknown', !node.shapeError && (!shape || !window.NWUI_shape || !window.NWUI_shape.isKnownShape(shape)));
+        shapeEl.classList.toggle('portShapeError', Boolean(node.shapeError));
       }
     });
 
     if (isIoInput(node.block)){
       const shapeRow = el.querySelector('.ioShapeDisplay');
       if (shapeRow){
-        const outShape = node.outputShapes && node.outputShapes[0];
-        shapeRow.textContent = outShape
-          ? formatPortShape(outShape)
-          : formatShapeDisplay(node.shape);
-        shapeRow.classList.toggle('ioShapeEmpty', !outShape && !isValidShape(node.shape));
+        if (node.shapeError){
+          shapeRow.textContent = '—';
+          shapeRow.classList.add('ioShapeEmpty');
+        } else {
+          const outShape = node.outputShapes && node.outputShapes[0];
+          shapeRow.textContent = outShape
+            ? formatPortShape(outShape)
+            : formatShapeDisplay(node.shape);
+          shapeRow.classList.toggle('ioShapeEmpty', !outShape && !isValidShape(node.shape));
+        }
       }
     }
+  }
+
+  function hasConnectionTo(nodeId, inputIndex){
+    return connections.some(c => c.to === nodeId && c.toIndex === inputIndex);
   }
 
   function portShapeLabel(shape){
@@ -762,6 +888,7 @@
     nodes.push(node);
     normalizeNodePorts(node);
     renderNode(node);
+    invalidateShapes();
     updateExportButtonState();
   }
 
@@ -889,7 +1016,7 @@
 
     setSelection(newIds);
     updateConnections();
-    recomputeShapes();
+    invalidateShapes();
     updateExportButtonState();
   }
 
@@ -910,7 +1037,7 @@
     clearSelection();
     resizeSvgLayer();
     updateConnections();
-    recomputeShapes();
+    invalidateShapes();
     updateExportButtonState();
   }
 
@@ -1112,7 +1239,6 @@
     canvasContent.appendChild(el);
     resizeSvgLayer();
     updateConnections();
-    recomputeShapes();
   }
 
   // global pointermove to handle dragging
@@ -1214,7 +1340,7 @@
       document.removeEventListener('pointercancel', up);
       drawingConn = null;
       updateConnections();
-      recomputeShapes();
+      invalidateShapes();
     }
 
     document.addEventListener('pointermove', move);
@@ -1363,7 +1489,7 @@
       }
       updateIoNodeVisuals(node);
       if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
-      recomputeShapes();
+      invalidateShapes();
       return nodeHasRequiredFields(node);
     }
 
@@ -1401,6 +1527,13 @@
     title.innerHTML = `<strong>${getNodeDisplayName(node)}</strong><span>${isIoBlock(node.block) ? node.block.name : (node.block.path || '')}</span>`;
     form.appendChild(title);
 
+    if (node.shapeError){
+      const shapeErr = document.createElement('div');
+      shapeErr.className = 'propsShapeError';
+      shapeErr.textContent = node.shapeError;
+      form.appendChild(shapeErr);
+    }
+
     const saveWarning = document.createElement('div');
     saveWarning.className = 'saveWarning';
     saveWarning.textContent = 'Required fields are not filled';
@@ -1431,7 +1564,7 @@
         inp.oninput = () => {
           node.init_arguments[k] = inp.value;
           if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
-          recomputeShapes();
+          invalidateShapes();
         };
         row.appendChild(label);
         row.appendChild(inp);
@@ -1670,6 +1803,10 @@
 
   document.addEventListener('click', closeSearchOnClickOutside);
 
+  if (validateShapesBtn){
+    validateShapesBtn.addEventListener('click', validateShapes);
+  }
+
   exportBtn.onclick = async () => {
     if (!allNodesSaved()){
       alert('All blocks must be saved before saving the graph.');
@@ -1735,6 +1872,7 @@
     applyCanvasZoom();
     resizeSvgLayer();
     updateExportButtonState();
+    updateValidateShapesButton();
     await fetchBlocks();
     await fetchSavedGraphs();
     updateSessionLabel();
