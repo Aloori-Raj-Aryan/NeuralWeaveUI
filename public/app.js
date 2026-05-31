@@ -246,6 +246,7 @@
     cancelBlockPlacement();
     resizeSvgLayer();
     updateConnections();
+    recomputeShapes();
     updateExportButtonState();
   }
 
@@ -386,6 +387,58 @@
   function formatShapeDisplay(shape){
     if (!isValidShape(shape)) return '[B, …]';
     return '[B, ' + shape.join(', ') + ']';
+  }
+
+  function formatPortShape(shape){
+    if (window.NWUI_shape) return window.NWUI_shape.formatShape(shape);
+    if (!shape || !shape.length) return '[B, …]';
+    return '[' + shape.join(', ') + ']';
+  }
+
+  function recomputeShapes(){
+    if (window.NWUI_shape) window.NWUI_shape.propagateShapes(nodes, connections);
+    nodes.forEach(updateNodeShapeDisplay);
+  }
+
+  function updateNodeShapeDisplay(node){
+    const el = nodeElement(node.id);
+    if (!el) return;
+
+    node.inputs.forEach((_inp, idx) => {
+      const shapeEl = el.querySelector(`.portRow.inputPort[data-input="${idx}"] .portShape`);
+      if (shapeEl){
+        const shape = node.inputShapes && node.inputShapes[idx];
+        shapeEl.textContent = formatPortShape(shape);
+        shapeEl.classList.toggle('portShapeUnknown', !shape || !window.NWUI_shape || !window.NWUI_shape.isKnownShape(shape));
+      }
+    });
+
+    node.outputs.forEach((_out, idx) => {
+      const shapeEl = el.querySelector(`.portRow.outputPort[data-out="${idx}"] .portShape`);
+      if (shapeEl){
+        const shape = node.outputShapes && node.outputShapes[idx];
+        shapeEl.textContent = formatPortShape(shape);
+        shapeEl.classList.toggle('portShapeUnknown', !shape || !window.NWUI_shape || !window.NWUI_shape.isKnownShape(shape));
+      }
+    });
+
+    if (isIoInput(node.block)){
+      const shapeRow = el.querySelector('.ioShapeDisplay');
+      if (shapeRow){
+        const outShape = node.outputShapes && node.outputShapes[0];
+        shapeRow.textContent = outShape
+          ? formatPortShape(outShape)
+          : formatShapeDisplay(node.shape);
+        shapeRow.classList.toggle('ioShapeEmpty', !outShape && !isValidShape(node.shape));
+      }
+    }
+  }
+
+  function portShapeLabel(shape){
+    const span = document.createElement('span');
+    span.className = 'portShape portShapeUnknown';
+    span.textContent = formatPortShape(shape);
+    return span;
   }
 
   function ioNameTaken(name, excludeNodeId){
@@ -836,6 +889,7 @@
 
     setSelection(newIds);
     updateConnections();
+    recomputeShapes();
     updateExportButtonState();
   }
 
@@ -856,6 +910,7 @@
     clearSelection();
     resizeSvgLayer();
     updateConnections();
+    recomputeShapes();
     updateExportButtonState();
   }
 
@@ -932,14 +987,11 @@
 
   function updateIoNodeVisuals(node){
     const el = nodeElement(node.id);
-    if (!el) return;
-    const nameEl = el.querySelector('.nodeName');
-    if (nameEl) nameEl.textContent = getNodeDisplayName(node);
-    const shapeEl = el.querySelector('.ioShapeDisplay');
-    if (shapeEl && isIoInput(node.block)){
-      shapeEl.textContent = formatShapeDisplay(node.shape);
-      shapeEl.classList.toggle('ioShapeEmpty', !isValidShape(node.shape));
+    if (el){
+      const nameEl = el.querySelector('.nodeName');
+      if (nameEl) nameEl.textContent = getNodeDisplayName(node);
     }
+    updateNodeShapeDisplay(node);
   }
 
   function renderNode(node){
@@ -994,6 +1046,7 @@
 
         row.appendChild(handle);
         row.appendChild(name);
+        row.appendChild(portShapeLabel(node.inputShapes && node.inputShapes[idx]));
         row.appendChild(portBadge(inp.required));
         ports.appendChild(row);
       });
@@ -1021,6 +1074,7 @@
         handle.addEventListener('pointerdown', (ev) => startConnection(ev, node.id, idx));
 
         row.appendChild(name);
+        row.appendChild(portShapeLabel(node.outputShapes && node.outputShapes[idx]));
         row.appendChild(handle);
         ports.appendChild(row);
       });
@@ -1058,6 +1112,7 @@
     canvasContent.appendChild(el);
     resizeSvgLayer();
     updateConnections();
+    recomputeShapes();
   }
 
   // global pointermove to handle dragging
@@ -1159,6 +1214,7 @@
       document.removeEventListener('pointercancel', up);
       drawingConn = null;
       updateConnections();
+      recomputeShapes();
     }
 
     document.addEventListener('pointermove', move);
@@ -1307,6 +1363,7 @@
       }
       updateIoNodeVisuals(node);
       if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
+      recomputeShapes();
       return nodeHasRequiredFields(node);
     }
 
@@ -1374,6 +1431,7 @@
         inp.oninput = () => {
           node.init_arguments[k] = inp.value;
           if (nodeHasRequiredFields(node)) saveWarning.classList.remove('visible');
+          recomputeShapes();
         };
         row.appendChild(label);
         row.appendChild(inp);

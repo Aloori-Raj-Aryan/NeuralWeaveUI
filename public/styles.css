@@ -520,6 +520,24 @@ html, body, #app {
   font-weight: 500;
 }
 
+.portShape {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: #047857;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.portShape.portShapeUnknown {
+  color: var(--text-subtle);
+  font-style: italic;
+}
+
+.portRow.outputPort .portShape {
+  margin-right: 4px;
+}
+
 .portBadge {
   font-size: 9px;
   font-weight: 600;
